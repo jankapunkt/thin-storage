@@ -1,20 +1,21 @@
-# 📦 NPM Package Template - Zero Config 📦
+# Thin Storage 📦
 
-![Test suite](https://github.com/jankapunkt/npm-package-template/workflows/Test%20suite/badge.svg)
-[![Build and publish](https://github.com/jankapunkt/npm-package-template/actions/workflows/publish.yml/badge.svg)](https://github.com/jankapunkt/npm-package-template/actions/workflows/publish.yml)
+![Test suite](https://github.com/jankapunkt/thin-storage/workflows/Test%20suite/badge.svg)
+[![Build and publish](https://github.com/jankapunkt/thin-storage/actions/workflows/publish.yml/badge.svg)](https://github.com/jankapunkt/thin-storage/actions/workflows/publish.yml)
 [![JavaScript Style Guide](https://img.shields.io/badge/code_style-standard-brightgreen.svg)](https://standardjs.com)
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
-![GitHub](https://img.shields.io/github/license/jankapunkt/npm-package-template)
+![GitHub](https://img.shields.io/github/license/jankapunkt/thin-storage)
 
-Minimal tested and fully functional NPM package template project for ES6+ Javascript.
+Thin and lightweight JavaScript storage interface with middleware layer. Designed for small projects.
+Not necessarily scalable. Designed for simplicity. Great for DIY adapters.
 
 ## About this package
 
-This template is intended to allow you to **start developing immediatly** with a working set
-of tools and scripts that play well together.
+If you plan to do simple operations on some collections then this tool might be for you.
+It allows to CRUD a local in-memory store and provdies a minimal middleware stack that allows
+to commit the changes to whatever will actually store the data.
 
-It is little opinionated to the point, that only the most basic tools are integrated.
-If you want a different flavour you can fork this project and easily replace the tools or add new ones.
+It brings no sync system but a simple API to help you with it.
 
 ## What's included?
 
