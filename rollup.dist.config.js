@@ -2,32 +2,32 @@ import { babel, getBabelOutputPlugin } from '@rollup/plugin-babel'
 import commonjs from '@rollup/plugin-commonjs'
 
 export default [{
-  input: 'lib/index.js',
+  input: 'lib/Storage.js',
   output: [
     {
-      file: 'dist/index.js',
+      file: 'dist/Storage.js',
       format: 'es',
       sourcemap: true
     },
     {
-      file: 'dist/index.es5.js',
+      file: 'dist/Storage.es5.js',
       format: 'es',
       plugins: [getBabelOutputPlugin({ presets: ['@babel/preset-env'] })],
       sourcemap: true
     },
     {
-      file: 'dist/index.cjs.js',
+      file: 'dist/Storage.cjs.js',
       format: 'cjs',
       plugins: [getBabelOutputPlugin({ presets: ['@babel/preset-env'] })],
       sourcemap: true
     }
   ]
 }, {
-  input: 'lib/index.js',
+  input: 'lib/Storage.js',
   output: {
-    file: 'dist/index.iife.js',
+    file: 'dist/Storage.iife.js',
     format: 'iife',
-    name: 'index',
+    name: 'Storage',
     sourcemap: true
   },
   plugins: [
