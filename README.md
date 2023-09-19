@@ -5,6 +5,7 @@
 [![JavaScript Style Guide](https://img.shields.io/badge/code_style-standard-brightgreen.svg)](https://standardjs.com)
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 ![GitHub](https://img.shields.io/github/license/jankapunkt/thin-storage)
+[![sponsor](https://img.shields.io/static/v1?label=Sponsor&message=%E2%9D%A4&logo=GitHub)](https://github.com/sponsors/jankapunkt)
 
 Thin and lightweight JavaScript storage interface with middleware layer. Designed for small projects.
 Not necessarily scalable. Designed for simplicity. Great for DIY adapters.
@@ -23,10 +24,65 @@ It allows to CRUD a local in-memory store and provides a minimal middleware stac
 to commit the changes to whatever will actually store the data.
 
 It brings no sync or replication system but a simple API to help you with it.
+It also does not contain collections - every instance is a collection and you can either
+reuse or mix the middleware stack for each individually.
+
+This approach keeps the package small and concise.
 
 ## Installation and usage
 
+First, install from npm via
 
+```shell
+$ npm install thin-storage
+```
+
+Let's create a minimal storage that has no middleware and runs
+solely in-memory:
+
+```js
+import { ThinStorage } from 'thin-storage'
+
+const storage = new ThinStorage()
+```
+
+Now, let's add and query some documents. It's super simple:
+
+```js
+await storage.insert({ foo: 'bar' })
+await storage.insert([{ bar: 'baz' }])
+
+storage.find({ yolo: 1 }) // []
+storage.find({ foo: 'bar' }) // [{ id: '0000000000000001', foo: 'bar' }]
+storage.find(doc => 'bar' in doc) // [{ id: '0000000000000002', bar: 'baz' }]
+storage.find() // [{...}, {...}] 
+```
+
+As you can see the storage will generate values for the default primary key `id`
+if there is no handler for `insert`.
+
+Now let's update some documents:
+
+### Reusing the middleware stack
+
+A simple approach to reuse the middleware stack for each instance is to use a factory function:
+
+```js
+const handler = [{
+  async insert () { ... },
+  async update () { ... },
+  async remove () { ... }
+}, {
+  async fetch () { ... },
+  async insert () { ... },
+  async update () { ... },
+  async remove () { ... }
+}]
+
+export const createStorage = ({ name, primary = 'id' }) => {
+  return new Storage({ name, primary, handler })
+}
+```
 
 ## Development
 

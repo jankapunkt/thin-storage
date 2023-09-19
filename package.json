@@ -43,7 +43,7 @@
   "targets": "> 0.25%, not dead",
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/jankapunkt/npm-package-template.git"
+    "url": "git+ssh://git@github.com/jankapunkt/thin-storage.git"
   },
   "keywords": [
     "npm",
@@ -58,7 +58,7 @@
   },
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/jankapunkt/npm-package-template/issues"
+    "url": "https://github.com/jankapunkt/thin-storage/issues"
   },
   "engines": {
     "node": ">= 14.x"
@@ -70,7 +70,7 @@
     "LICENSE",
     "CHANGELOG.md"
   ],
-  "homepage": "https://github.com/jankapunkt/npm-package-template#readme",
+  "homepage": "https://github.com/jankapunkt/thin-storage#readme",
   "devDependencies": {
     "@babel/cli": "^7.22.10",
     "@babel/core": "^7.22.15",

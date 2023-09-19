@@ -1,7 +1,7 @@
 /* eslint-env mocha */
 import { describe, it } from 'mocha'
 import { expect } from 'chai'
-import { Storage } from '../lib/Storage.js'
+import { ThinStorage } from '../lib/ThinStorage.js'
 
 const getDocs = storage => [...storage.documents.values()]
 const expectAsyncError = async ({ promise, onError }) => {
@@ -15,12 +15,8 @@ const expectAsyncError = async ({ promise, onError }) => {
 
 describe('Storage', () => {
   describe('find / query', () => {
-    it('returns a single doc by primary key')
-    it('returns all docs by {}')
-    it('returns all docs by matching object query')
-    it('returns all docs by mathcing function return value')
     it('returns docs with limit', async () => {
-      const storage = new Storage({
+      const storage = new ThinStorage({
         handler: {
           async insert () { return ['id1', 'id2'] }
         }
@@ -33,9 +29,15 @@ describe('Storage', () => {
     })
   })
   describe('no handler', () => {
+    it('fetches no docs', async () => {
+      const storage = new ThinStorage()
+      const fetched = await storage.fetch({})
+      expect(fetched).to.equal(-1)
+      expect(storage.find()).to.deep.equal([])
+    })
     it('inserts new documents without primary keys', async () => {
       const docs = [{ foo: 'bar' }, { bar: 'baz' }]
-      const storage = new Storage()
+      const storage = new ThinStorage()
       const ids = await storage.insert(docs)
       expect(ids.length).to.equal(2)
       expect(getDocs(storage)).to.deep.equal([
@@ -47,7 +49,7 @@ describe('Storage', () => {
     })
     it('updates existing documents by given modifier doc', async () => {
       const docs = [{ foo: 'bar', yolo: 1 }, { bar: 'baz', yolo: 1 }]
-      const storage = new Storage()
+      const storage = new ThinStorage()
       await storage.insert(docs[0])
       await storage.insert(docs[1])
       const updated1 = await storage.update({ foo: 'bar' }, { foo: 'moo' })
@@ -87,7 +89,7 @@ describe('Storage', () => {
     })
     it('removes existing documents by query', async () => {
       const docs = [{ foo: 'bar', yolo: 1 }, { bar: 'baz', yolo: 1 }, { moo: 'baz', yolo: 1 }]
-      const storage = new Storage()
+      const storage = new ThinStorage()
       await storage.insert(docs)
 
       const removed = await storage.remove({ nope: 'whatever' })
@@ -111,8 +113,51 @@ describe('Storage', () => {
     })
   })
   describe('single handler middleware', () => {
+    it('fetches docs from the handlers', async () => {
+      const storage = new ThinStorage({
+        name: 'testStorage',
+        handler: {
+          async fetch (query) {
+            return docs
+          }
+        }
+      })
+      const docs = [{ id: 'id1', foo: 'bar' }, { id:'id2', bar: 'baz' }]
+      await storage.fetch()
+      expect(storage.find()).to.deep.equal(docs)
+    })
+    it('fetches and replaces existing docs with the remote', async () => {
+      const storage = new ThinStorage({
+        name: 'testStorage',
+        handler: {
+          async insert (documents, options, primaries) {
+            expect(documents).to.deep.equal(docs)
+            expect(options).to.deep.equal({ name: 'testStorage', primary: 'id' })
+            return ['id1', 'id2']
+          },
+          async fetch () {
+            return [{
+              id: 'id1', foo: 'moo', yolo: 1
+            }]
+          }
+        }
+      })
+      const docs = [{ foo: 'bar' }, { bar: 'baz' }]
+      await storage.insert(docs)
+
+      expect(getDocs(storage)).to.deep.equal([
+        { id: 'id1', foo: 'bar' },
+        { id: 'id2', bar: 'baz' }
+      ])
+
+      await storage.fetch()
+      expect(getDocs(storage)).to.deep.equal([
+        { id: 'id2', bar: 'baz' },
+        {  id: 'id1', foo: 'moo', yolo: 1 },
+      ])
+    })
     it('inserts new documents with primary keys', async () => {
-      const storage = new Storage({
+      const storage = new ThinStorage({
         name: 'testStorage',
         handler: {
           async insert (documents, options, primaries) {
@@ -133,7 +178,7 @@ describe('Storage', () => {
       expect(docs).to.deep.equal([{ foo: 'bar' }, { bar: 'baz' }])
     })
     it('does not insert if an error occurs', async () => {
-      const storage = new Storage({
+      const storage = new ThinStorage({
         handler: {
           async insert () {
             throw new Error('expected error')
@@ -154,7 +199,7 @@ describe('Storage', () => {
       expect(docs).to.deep.equal([{ foo: 'bar' }, { bar: 'baz' }])
     })
     it('updates docs by query and modifier', async () => {
-      const storage = new Storage({
+      const storage = new ThinStorage({
         handler: {
           async insert () {
             return ['id1', 'id2']
@@ -188,7 +233,7 @@ describe('Storage', () => {
       expect(docs).to.deep.equal([{ foo: 'bar' }, { bar: 'baz' }])
     })
     it('it catches and reports errors during update', async () => {
-      const storage = new Storage({
+      const storage = new ThinStorage({
         handler: {
           async insert () {
             return ['id1', 'id2']
@@ -213,7 +258,7 @@ describe('Storage', () => {
       expect(docs).to.deep.equal([{ foo: 'bar' }, { bar: 'baz' }])
     })
     it('it removes docs by given query', async () => {
-      const storage = new Storage({
+      const storage = new ThinStorage({
         handler: {
           async insert () {
             return ['id1', 'id2']
@@ -233,7 +278,7 @@ describe('Storage', () => {
       expect(docs).to.deep.equal([{ foo: 'bar' }, { bar: 'baz' }])
     })
     it('it catches and reports errors during remove', async () => {
-      const storage = new Storage({
+      const storage = new ThinStorage({
         handler: {
           async insert () {
             return ['id1', 'id2']
@@ -257,7 +302,7 @@ describe('Storage', () => {
   })
   describe('multiple handler middleware', () => {
     it('allows to pre-process insert docs with middleware', async () => {
-      const storage = new Storage({
+      const storage = new ThinStorage({
         handler: [
           {
             async insert (documents, options, primaries) {
@@ -289,7 +334,7 @@ describe('Storage', () => {
       expect(docs).to.deep.equal([{ foo: 'bar' }, { bar: 'baz' }])
     })
     it('allows to pre-process update docs with middleware', async () => {
-      const storage = new Storage({
+      const storage = new ThinStorage({
         handler: [
           {
             async insert (documents, options, primaries) {
