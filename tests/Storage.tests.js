@@ -1,4 +1,4 @@
-/* global beforeEach afterEach */
+/* eslint-env mocha */
 import { describe, it } from 'mocha'
 import { expect } from 'chai'
 import { Storage } from '../lib/Storage.js'
@@ -14,6 +14,24 @@ const expectAsyncError = async ({ promise, onError }) => {
 }
 
 describe('Storage', () => {
+  describe('find / query', () => {
+    it('returns a single doc by primary key')
+    it('returns all docs by {}')
+    it('returns all docs by matching object query')
+    it('returns all docs by mathcing function return value')
+    it('returns docs with limit', async () => {
+      const storage = new Storage({
+        handler: {
+          async insert () { return ['id1', 'id2'] }
+        }
+      })
+      const docs = [{ foo: 'bar' }, { bar: 'baz' }]
+      await storage.insert(docs)
+      expect(storage.find(null, { limit: 1 })).to.deep.equal([
+        { id: 'id1', foo: 'bar' }
+      ])
+    })
+  })
   describe('no handler', () => {
     it('inserts new documents without primary keys', async () => {
       const docs = [{ foo: 'bar' }, { bar: 'baz' }]
@@ -36,36 +54,35 @@ describe('Storage', () => {
       expect(updated1).to.equal(1)
       expect(storage.find()).to.deep.equal([
         { id: '0000000000000004', bar: 'baz', yolo: 1 },
-        { id: '0000000000000003', foo: 'moo', yolo: 1 },
+        { id: '0000000000000003', foo: 'moo', yolo: 1 }
       ])
 
       const updated2 = await storage.update({ foo: 'moo' }, { foo: null })
       expect(updated2).to.equal(1)
       expect(storage.find()).to.deep.equal([
         { id: '0000000000000004', bar: 'baz', yolo: 1 },
-        { id: '0000000000000003', yolo: 1 },
+        { id: '0000000000000003', yolo: 1 }
       ])
-
 
       const updated3 = await storage.update(doc => 'bar' in doc, { foo: 'baz' })
       expect(updated3).to.equal(1)
       expect(storage.find()).to.deep.equal([
         { id: '0000000000000003', yolo: 1 },
-        { id: '0000000000000004', bar: 'baz', foo: 'baz', yolo: 1 },
+        { id: '0000000000000004', bar: 'baz', foo: 'baz', yolo: 1 }
       ])
 
       const updated4 = await storage.update({ yolo: 1 }, { yolo: value => value + 2 })
       expect(updated4).to.equal(2)
       expect(storage.find()).to.deep.equal([
         { id: '0000000000000003', yolo: 3 },
-        { id: '0000000000000004', bar: 'baz', foo: 'baz', yolo: 3 },
+        { id: '0000000000000004', bar: 'baz', foo: 'baz', yolo: 3 }
       ])
 
       const updated5 = await storage.update('idabcdef', { moo: 0 })
       expect(updated5).to.equal(0)
       expect(storage.find()).to.deep.equal([
         { id: '0000000000000003', yolo: 3 },
-        { id: '0000000000000004', bar: 'baz', foo: 'baz', yolo: 3 },
+        { id: '0000000000000004', bar: 'baz', foo: 'baz', yolo: 3 }
       ])
     })
     it('removes existing documents by query', async () => {
@@ -156,7 +173,7 @@ describe('Storage', () => {
       expect(updated).to.equal(1)
       expect(storage.find()).to.deep.equal([
         { id: 'id2', bar: 'baz' },
-        { id: 'id1', foo: 'moo' },
+        { id: 'id1', foo: 'moo' }
       ])
 
       // by primary
@@ -164,17 +181,81 @@ describe('Storage', () => {
       expect(updated2).to.equal(1)
       expect(storage.find()).to.deep.equal([
         { id: 'id1', foo: 'moo' },
-        { id: 'id2', bar: 'baz', foo: 'moo' },
+        { id: 'id2', bar: 'baz', foo: 'moo' }
       ])
 
       // original docs unaltered
       expect(docs).to.deep.equal([{ foo: 'bar' }, { bar: 'baz' }])
     })
-    it('it catches and reports errors during update')
-    it('it removes docs by given query')
-    it('it catches and reports errors during remove')
+    it('it catches and reports errors during update', async () => {
+      const storage = new Storage({
+        handler: {
+          async insert () {
+            return ['id1', 'id2']
+          },
+          async update (documents, modifier, options, updated) {
+            throw new Error('expected update error')
+          }
+        }
+      })
+
+      const docs = [{ foo: 'bar' }, { bar: 'baz' }]
+      await storage.insert(docs)
+
+      await expectAsyncError({
+        promise: storage.update({ foo: 'bar' }, { foo: 'moo' }),
+        onError: e => {
+          expect(e.message).to.deep.equal('expected update error')
+        }
+      })
+
+      // original docs unaltered
+      expect(docs).to.deep.equal([{ foo: 'bar' }, { bar: 'baz' }])
+    })
+    it('it removes docs by given query', async () => {
+      const storage = new Storage({
+        handler: {
+          async insert () {
+            return ['id1', 'id2']
+          },
+          async remove (documents, options, removed) {
+            expect(removed).to.deep.equal(['id1', 'id2'])
+            return removed
+          }
+        }
+      })
+      const docs = [{ foo: 'bar' }, { bar: 'baz' }]
+      await storage.insert(docs)
+      const removed = await storage.remove({})
+      expect(removed).to.equal(2)
+      expect(storage.find()).to.deep.equal([])
+      // original docs unaltered
+      expect(docs).to.deep.equal([{ foo: 'bar' }, { bar: 'baz' }])
+    })
+    it('it catches and reports errors during remove', async () => {
+      const storage = new Storage({
+        handler: {
+          async insert () {
+            return ['id1', 'id2']
+          },
+          async remove (documents, options, removed) {
+            throw new Error('expected remove error')
+          }
+        }
+      })
+      const docs = [{ foo: 'bar' }, { bar: 'baz' }]
+      await storage.insert(docs)
+      await expectAsyncError({
+        promise: storage.remove({}),
+        onError: e => expect(e.message).to.equal('expected remove error')
+      })
+
+      expect(storage.find()).to.deep.equal([{ id: 'id1', foo: 'bar' }, { id: 'id2', bar: 'baz' }])
+      // original docs unaltered
+      expect(docs).to.deep.equal([{ foo: 'bar' }, { bar: 'baz' }])
+    })
   })
-  describe('multiple handler middleware', function () {
+  describe('multiple handler middleware', () => {
     it('allows to pre-process insert docs with middleware', async () => {
       const storage = new Storage({
         handler: [
@@ -207,7 +288,49 @@ describe('Storage', () => {
       // original docs unaltered
       expect(docs).to.deep.equal([{ foo: 'bar' }, { bar: 'baz' }])
     })
-    it('allows to pre-process update docs with middleware')
+    it('allows to pre-process update docs with middleware', async () => {
+      const storage = new Storage({
+        handler: [
+          {
+            async insert (documents, options, primaries) {
+              return ['id1', 'id2']
+            },
+            async update (documents, modifier, options, updated) {
+              // remove last doc, which we won't delete
+              // as this middleware has decided
+              documents.pop()
+              updated.pop()
+              return updated
+            }
+          },
+          {
+            async update (documents, modifier, options, updated) {
+              expect(documents.length).to.equal(1)
+              expect(updated.length).to.equal(1)
+              return updated
+            }
+          }
+        ]
+      })
+
+      const docs = [{ foo: 'bar' }, { bar: 'baz' }]
+      const ids = await storage.insert(docs)
+      expect(ids).to.deep.equal(['id1', 'id2'])
+      expect(storage.find()).to.deep.equal([
+        { id: 'id1', foo: 'bar' },
+        { id: 'id2', bar: 'baz' }
+      ])
+
+      const updated = await storage.update({}, { yolo: 1 })
+      expect(updated).to.equal(1)
+      expect(storage.find()).to.deep.equal([
+        { id: 'id2', bar: 'baz' },
+        { id: 'id1', foo: 'bar', yolo: 1 }
+      ])
+
+      // original docs unaltered
+      expect(docs).to.deep.equal([{ foo: 'bar' }, { bar: 'baz' }])
+    })
     it('allows to pre-process remove docs with middleware')
   })
 })
