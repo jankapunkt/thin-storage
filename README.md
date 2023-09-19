@@ -9,17 +9,30 @@
 Thin and lightweight JavaScript storage interface with middleware layer. Designed for small projects.
 Not necessarily scalable. Designed for simplicity. Great for DIY adapters.
 
-## About this package
+## Concepts and conventions
+
+- out of the box - run locally in-memory without any further required implementations
+- all or nothing - changes rejected by middleware will not be applied at all
+- bring your own - validation, cleaning, processing is all optional and done by middleware
+- keep it simple - the api is minimal and easy to comprehend
+
+## Is this package for you?
 
 If you plan to do simple operations on some collections then this tool might be for you.
-It allows to CRUD a local in-memory store and provdies a minimal middleware stack that allows
+It allows to CRUD a local in-memory store and provides a minimal middleware stack that allows
 to commit the changes to whatever will actually store the data.
 
-It brings no sync system but a simple API to help you with it.
+It brings no sync or replication system but a simple API to help you with it.
 
-## What's included?
+## Installation and usage
+
+
+
+## Development
 
 ### Tools / stack
+
+We use the following stack to develop and publish this package:
 
 * 🗪 [Babel](https://babeljs.io/) for transpiling
 * 🪄 [Standard](https://standardjs.com/) for linting
@@ -31,27 +44,18 @@ It brings no sync system but a simple API to help you with it.
 
 All tools are defined as **`dev-dependencies`**!
 
-### Docs and repository
+### Contributing and development (quick guide)
 
-This template repository has all relevant GitHub community standards implemented:
+**Note:** We provide an [extensive contribution guideline](./CONTRIBUTING.md) and a [code of conduct](./CODE_OF_CONDUCT.md)
+to help you in making your contribution a success!
 
-- [x] Description
-- [x] [README](./README.md)
-- [x] [Code of conduct](./CODE_OF_CONDUCT.md)
-- [x] [Contributing](./CONTRIBUTING.md)
-- [x] [License](./LICENSE)
-- [x] [Security policy](./SECURITY.md)
-- [x] [Issue templates](./.github/ISSUE_TEMPLATE)
-- [x] [Pull request template](./.github/PULL_REQUEST_TEMPLATE.md)
+First, or fork the repository and clone it to your local machine:
 
-## Getting started
-
-First, [create a new repository with this repository as template](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template)
-or fork the repository and clone it to your local machine.
+```shell
+$ git clone git@github.com:jankapunkt/thin-storage.git
+```
 
 From here, simply create your Js files in the `./lib` folder and add the tests in the `test` folder.
-
-### Use the tools
 
 We provide a default set of tools via npm scripts. Run a script via
 
@@ -71,11 +75,6 @@ where `<command>` is one of the following available commands:
 | `docs`          | creates API documentation                         | `docs`     |
 | `build`         | builds the bundles for several target platforms   | `dist`     |
 | `build:full`    | runs `build` and `docs`                           | see above  |
-
-## Contributing and development
-
-We provide an [extensive contribution guideline](./CONTRIBUTING.md) and a [code of conduct](./CODE_OF_CONDUCT.md)
-to help you in making your contribution a success!
 
 ## Security
 
