@@ -95,4 +95,3 @@ const fromStorage = ({ name, storage }) => {
 
   return docs
 }
-

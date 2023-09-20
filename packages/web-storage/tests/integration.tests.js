@@ -77,13 +77,13 @@ describe('WebStorage', function () {
     expect(storage.find()).to.deep.equal([doc, expectedDoc2])
     expect(localStorage.getItem('foo')).to.equal(JSON.stringify([doc, expectedDoc2], null, 0))
   })
-  it('updates docs in web storage', async ()=> {
+  it('updates docs in web storage', async () => {
     const localStorage = new LocalStorage()
     const docs = [
       { id: randomHex(8), foo: 'bar' },
       { id: randomHex(8), foo: 'baz' },
       { id: randomHex(8), foo: 'baz' },
-      { id: randomHex(8), foo: 'bar' },
+      { id: randomHex(8), foo: 'bar' }
     ]
     const clone = docs.map(entry => ({ ...entry }))
     localStorage.setItem('foo', JSON.stringify(docs))
@@ -92,7 +92,7 @@ describe('WebStorage', function () {
       name: 'foo',
       handler: [
         {
-          async update(documents, modifier, options, updated) {
+          async update (documents, modifier, options, updated) {
             return updated
           }
         },
@@ -120,7 +120,7 @@ describe('WebStorage', function () {
       { id: randomHex(8), foo: 'bar' },
       { id: randomHex(8), foo: 'baz' },
       { id: randomHex(8), foo: 'baz' },
-      { id: randomHex(8), foo: 'bar' },
+      { id: randomHex(8), foo: 'bar' }
     ]
 
     localStorage.setItem('foo', JSON.stringify(docs))
