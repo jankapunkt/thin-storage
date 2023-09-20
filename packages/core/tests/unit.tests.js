@@ -15,6 +15,10 @@ const expectAsyncError = async ({ promise, onError }) => {
 
 describe('Storage', () => {
   describe('find / query', () => {
+    it('works with a single primary key string')
+    it('works with a list of primary key strings')
+    it('works with an object of key value pairs')
+    it('works with an object of key value-list pairs')
     it('returns docs with limit', async () => {
       const storage = new ThinStorage({
         handler: {

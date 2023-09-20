@@ -1,5 +1,5 @@
 {
-  "name": "thin-storage",
+  "name": "@thin-storage/core",
   "version": "1.0.0",
   "description": "Lightweight storage interface with middleware stack",
   "type": "module",
@@ -66,9 +66,9 @@
   "files": [
     "dist",
     "API.md",
-    "README.md",
-    "LICENSE",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "../../README.md",
+    "../../LICENSE"
   ],
   "homepage": "https://github.com/jankapunkt/thin-storage#readme",
   "devDependencies": {
