@@ -382,4 +382,7 @@ describe('Storage', () => {
     })
     it('allows to pre-process remove docs with middleware')
   })
+  describe('listeners', () => {
+    it('allows to listen to change events')
+  })
 })

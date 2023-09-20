@@ -21,7 +21,6 @@ export class WebStorageHandler {
 
     documents.forEach(doc => {
       const key = this.idGen(8)
-      console.debug(key)
       doc[primary] = key
       docs.push(doc)
       primaries.push(key)

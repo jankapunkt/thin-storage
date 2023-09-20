@@ -7,8 +7,12 @@
 ![GitHub](https://img.shields.io/github/license/jankapunkt/thin-storage)
 [![sponsor](https://img.shields.io/static/v1?label=Sponsor&message=%E2%9D%A4&logo=GitHub)](https://github.com/sponsors/jankapunkt)
 
-Thin and lightweight JavaScript storage interface with middleware layer. Intended for small projects.
-Not necessarily scalable. Designed for simplicity. Great with DIY adapters.
+Thin and lightweight JavaScript storage interface with middleware layer.
+- No dependencies.
+- Intended for small projects.
+- Not necessarily scalable. 
+- Designed for simplicity. 
+- Great with DIY adapters.
 
 ## Concepts and conventions 💡
 
@@ -130,6 +134,51 @@ be applied to it. The following constructs are possible:
 - callback-style function, manipulating the document in any possible way, needs to return the document
   - example: `doc => { doc.moo = doc.moo ? 0 : doc.moo + 1; return doc }`
   - similar to the Array map method callback
+
+
+## Integrations 🤝
+
+### Vue 3
+
+The local documents in the storage are contained within a `Set`.
+To observe changes using a `ref`, simply pass the ref value as `set` argument to the options
+when constructing the storage:
+
+```vue
+<script setup>
+  import { ref } from 'vue'
+  import { ThinStorage } from '@thin-storage/core'
+
+  const users = ref(new Set())
+  const UsersCollection = new ThinStorage({
+    name: 'users',
+    set: users.value
+  })
+  
+  // this operation will be reflected on the ref
+  UsersCollection
+          .insert({ username: 'johnnyCash01234' })
+          .catch(console.error)
+</script>
+```
+
+### React
+
+React's `useState` [requires data to be immutable](https://react.dev/learn/updating-arrays-in-state) which
+is why we added a simple EventEmitter-like functionality that dispatches changes, so you can listen to and 
+update state as desired:
+
+```js
+export const useStorage = (storage) => {
+  const [docs, setDocs] = useState([])
+  
+  useEffect(() => {
+    storage.on('change', () => setDocs(storage.find()))
+  }, [])
+  
+  return docs
+}
+```
 
 ## Development 🛠️
 

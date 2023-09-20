@@ -13,7 +13,7 @@
     "test": "mocha \"tests/**/*.tests.js\"",
     "test:coverage": "NODE_ENV=test c8 --all --include=lib/* --reporter=html --reporter=text mocha \"tests/**/*.tests.js\"",
     "test:watch": "npm test -- --watch",
-    "docs": "jsdoc --readme README.md ./lib/*.js -d ./docs && jsdoc2md ./lib/*.js > ./api.md",
+    "docs": "jsdoc --readme README.md ./lib/*.js -d ./docs && jsdoc2md ./lib/*.js > ./API.md",
     "build": "rollup --config rollup.dist.config.js",
     "build:full": "npm run docs && npm run build"
   },
