@@ -12,7 +12,7 @@ export class ThinStorage {
     this.setHandler(options.handler)
   }
 
-  setHandler(handler) {
+  setHandler (handler) {
     this.handler = handler
       ? Array.isArray(handler) ? handler : [handler]
       : []
@@ -60,7 +60,7 @@ export class ThinStorage {
 
   async insert (documents) {
     if (!documents || documents.length === 0) {
-      throw new Error(`Can't insert nothing`)
+      throw new Error('Can\'t insert nothing')
     }
     documents = Array.isArray(documents) ? documents : [documents]
     const local = shallowCopies(documents)

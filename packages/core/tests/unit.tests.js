@@ -126,7 +126,7 @@ describe('Storage', () => {
           }
         }
       })
-      const docs = [{ id: 'id1', foo: 'bar' }, { id:'id2', bar: 'baz' }]
+      const docs = [{ id: 'id1', foo: 'bar' }, { id: 'id2', bar: 'baz' }]
       await storage.fetch()
       expect(storage.find()).to.deep.equal(docs)
     })
@@ -157,7 +157,7 @@ describe('Storage', () => {
       await storage.fetch()
       expect(getDocs(storage)).to.deep.equal([
         { id: 'id2', bar: 'baz' },
-        {  id: 'id1', foo: 'moo', yolo: 1 },
+        { id: 'id1', foo: 'moo', yolo: 1 }
       ])
     })
     it('inserts new documents with primary keys', async () => {
