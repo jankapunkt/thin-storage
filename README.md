@@ -36,7 +36,7 @@ This approach keeps the package small and concise.
 
 ## Installation and basic usage 🧙‍♂️
 
----
+
 
 First, install from npm via
 
@@ -93,7 +93,7 @@ export const createStorage = ({ name, primary = 'id' }) => {
 
 ## Rules 🧑‍⚖️
 
----
+
 
 There are a few simple rules to know, in order to construct valid queries and modifiers.
 In contrast to other storage tools we don't use `$fancy` keys but simple conventions.
@@ -133,7 +133,7 @@ be applied to it. The following constructs are possible:
 
 ## Development 🛠️
 
----
+
 
 ### Tools / stack
 
@@ -183,12 +183,8 @@ where `<command>` is one of the following available commands:
 
 ## Security 🚨
 
----
-
 Please read our [security policy](./SECURITY.md) to get to know which versions are covered.
 
 ## License 🧾
-
----
 
 MIT, see [license file](LICENSE)
