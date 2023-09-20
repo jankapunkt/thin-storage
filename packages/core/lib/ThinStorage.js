@@ -22,6 +22,11 @@ export class ThinStorage {
     this.hasFetch = this.handler.find(h => !!h.fetch)
   }
 
+  clear () {
+    this.documents.clear()
+    this.keys.clear()
+  }
+
   async fetch (query, options) {
     if (!this.hasFetch) { return -1 }
 

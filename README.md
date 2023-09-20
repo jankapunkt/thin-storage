@@ -7,17 +7,22 @@
 ![GitHub](https://img.shields.io/github/license/jankapunkt/thin-storage)
 [![sponsor](https://img.shields.io/static/v1?label=Sponsor&message=%E2%9D%A4&logo=GitHub)](https://github.com/sponsors/jankapunkt)
 
-Thin and lightweight JavaScript storage interface with middleware layer. Designed for small projects.
-Not necessarily scalable. Designed for simplicity. Great for DIY adapters.
+Thin and lightweight JavaScript storage interface with middleware layer. Intended for small projects.
+Not necessarily scalable. Designed for simplicity. Great with DIY adapters.
 
-## Concepts and conventions
+## Concepts and conventions 💡
+
+---
 
 - out of the box - run locally in-memory without any further required implementations
 - all or nothing - changes rejected by middleware will not be applied at all
-- bring your own - validation, cleaning, processing is all optional and done by middleware
-- keep it simple - the api is minimal and easy to comprehend
+- bring your own - validation, cleaning, processing is all possible but entirely optional and done by middleware
+- keep it simple - the api is minimal and easy to comprehend, you have learned it in a few minutes
 
-## Is this package for you?
+
+## Is this package for you? 🤔
+
+---
 
 If you plan to do simple operations on some collections then this tool might be for you.
 It allows to CRUD a local in-memory store and provides a minimal middleware stack that allows
@@ -29,7 +34,9 @@ reuse or mix the middleware stack for each individually.
 
 This approach keeps the package small and concise.
 
-## Installation and usage
+## Installation and basic usage 🧙‍♂️
+
+---
 
 First, install from npm via
 
@@ -84,7 +91,49 @@ export const createStorage = ({ name, primary = 'id' }) => {
 }
 ```
 
-## Development
+## Rules 🧑‍⚖️
+
+---
+
+There are a few simple rules to know, in order to construct valid queries and modifiers.
+In contrast to other storage tools we don't use `$fancy` keys but simple conventions.
+
+If they don't cover your use-case - worry not - you can still provide a callback to construct entirely custom
+queries and modifiers! 💪
+
+## Queries
+
+Queries are used to define the subset of documents that is used for `find`, `update` or `remove` operations.
+The following constructs are possible:
+
+- a single string ⇒ find a single document by its primary key with the argument as the value
+  - example `'217db87c'`
+- a list of strings ⇒ find all documents by given primary key values
+  - example `['7970d267', 'e818085e', '47d5df93']`
+- an object with key-value pairs ⇒ find all documents that exact/loosely match the properties
+  - example: `{foo: 'bar'}` ⇒ get all docs with property `foo` being `'bar'`
+  - example: `{foo: ['bar', 'moo']}` ⇒ get all docs with property `foo` being `'bar'` or `'moo'`
+- a callback-style function ⇒ find all documents that pass the test of the function (similar to the Array filter method)
+  - example: `doc => 'foo' in doc` ⇒ returns all docs that have the `foo` property
+
+## Modifiers
+
+Modifiers define how documents should be updated. If a document matches the query then the modification will
+be applied to it. The following constructs are possible:
+
+- an object of key-value pairs
+  - example: `{foo: 'moo'}` ⇒ changes the value of the `foo` property to `'moo'` in all queried documents
+  - if the key is not in the document, it will be created with the given value
+  - if the value is null (such as in `{foo: 'null'}`) the property will be deleted from the document
+  - a value can be a function, too, allowing complex operations that don't fit key-value concepts
+  - example: `doc => doc.moo += 1` increments `moo` by 1, assuming it exists as a number in the given documents
+- callback-style function, manipulating the document in any possible way, needs to return the document
+  - example: `doc => { doc.moo = doc.moo ? 0 : doc.moo + 1; return doc }`
+  - similar to the Array map method callback
+
+## Development 🛠️
+
+---
 
 ### Tools / stack
 
@@ -132,10 +181,14 @@ where `<command>` is one of the following available commands:
 | `build`         | builds the bundles for several target platforms   | `dist`     |
 | `build:full`    | runs `build` and `docs`                           | see above  |
 
-## Security
+## Security 🚨
+
+---
 
 Please read our [security policy](./SECURITY.md) to get to know which versions are covered.
 
-## License
+## License 🧾
+
+---
 
 MIT, see [license file](LICENSE)

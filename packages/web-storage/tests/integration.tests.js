@@ -1,11 +1,14 @@
 /* eslint-env mocha */
 import { describe, it } from 'mocha'
 import { expect } from 'chai'
-import { ThinStorage } from '../lib/ThinStorage.js'
+import { ThinStorage } from '../../core/lib/ThinStorage.js'
 import { WebStorageHandler } from '../lib/WebStorageHandler.js'
 import { randomHex } from '../lib/utils.js'
 
-class MapStorage {
+/**
+ * This is an example implementation of the Web Storage API interface.
+ */
+class LocalStorage {
   constructor () {
     this.items = new Map()
     this.length = 0
@@ -46,7 +49,7 @@ class MapStorage {
 
 describe('WebStorage', function () {
   it('fetches docs from web storage', async () => {
-    const localStorage = new MapStorage()
+    const localStorage = new LocalStorage()
     const doc = { id: randomHex(8), foo: 'bar' }
     localStorage.setItem('foo', JSON.stringify([doc]))
     const storage = new ThinStorage({
@@ -58,7 +61,7 @@ describe('WebStorage', function () {
     expect(storage.find()).to.deep.equal([doc])
   })
   it('inserts docs to web storage', async () => {
-    const localStorage = new MapStorage()
+    const localStorage = new LocalStorage()
     const doc = { id: randomHex(8), foo: 'bar' }
     localStorage.setItem('foo', JSON.stringify([doc]))
     const storage = new ThinStorage({
@@ -75,7 +78,7 @@ describe('WebStorage', function () {
     expect(localStorage.getItem('foo')).to.equal(JSON.stringify([doc, expectedDoc2], null, 0))
   })
   it('updates docs in web storage', async ()=> {
-    const localStorage = new MapStorage()
+    const localStorage = new LocalStorage()
     const docs = [
       { id: randomHex(8), foo: 'bar' },
       { id: randomHex(8), foo: 'baz' },
@@ -90,8 +93,6 @@ describe('WebStorage', function () {
       handler: [
         {
           async update(documents, modifier, options, updated) {
-            console.debug(documents)
-            console.debug(updated)
             return updated
           }
         },
@@ -111,6 +112,31 @@ describe('WebStorage', function () {
     clone[2].yolo = 1
 
     const str = JSON.stringify(clone, null, 0)
+    expect(localStorage.getItem('foo')).to.equal(str)
+  })
+  it('removes docs from web storage', async () => {
+    const localStorage = new LocalStorage()
+    const docs = [
+      { id: randomHex(8), foo: 'bar' },
+      { id: randomHex(8), foo: 'baz' },
+      { id: randomHex(8), foo: 'baz' },
+      { id: randomHex(8), foo: 'bar' },
+    ]
+
+    localStorage.setItem('foo', JSON.stringify(docs))
+
+    const storage = new ThinStorage({
+      name: 'foo',
+      handler: [
+        new WebStorageHandler(localStorage)
+      ]
+    })
+
+    await storage.fetch()
+    const removed = await storage.remove(docs[2])
+    expect(removed).to.equal(1)
+
+    const str = JSON.stringify([docs[0], docs[1], docs[3]], null, 0)
     expect(localStorage.getItem('foo')).to.equal(str)
   })
 })
