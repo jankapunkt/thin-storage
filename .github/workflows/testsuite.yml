@@ -27,8 +27,10 @@ jobs:
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-node-
-      - run: npm ci
-      - run: npm run lint
+      - run: |
+          cd packages/core
+          npm ci
+          npm run lint
 
   unittest:
     name: unit tests
@@ -53,5 +55,7 @@ jobs:
           key: ${{ runner.os }}-node-${{ matrix.node }}-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-node-${{ matrix.node }}
-      - run: npm ci
-      - run: npm run test:coverage
+      - run: |
+          cd packages/core
+          npm ci
+          npm run test:coverage
