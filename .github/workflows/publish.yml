@@ -30,8 +30,10 @@ jobs:
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-node-
-      - run: npm ci
-      - run: npm run docs
+      - run: |
+          cd packages/core
+          npm ci
+          npm run docs
 
   build:
     name: Build bundle and publish
@@ -53,7 +55,8 @@ jobs:
           key: ${{ runner.os }}-node-${{ matrix.node }}-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-node-${{ matrix.node }}
-      - run: | 
+      - run: |
+          cd packages/core
           npm ci
           npm run build
           npm publish --dry-run
