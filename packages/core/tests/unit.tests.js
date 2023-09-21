@@ -3,7 +3,6 @@ import { describe, it } from 'mocha'
 import { expect } from 'chai'
 import { ThinStorage } from '../lib/ThinStorage.js'
 
-const getDocs = storage => [...storage.documents.values()]
 const expectAsyncError = async ({ promise, onError }) => {
   try {
     await promise
@@ -27,6 +26,7 @@ describe('Storage', () => {
       })
       const docs = [{ foo: 'bar' }, { bar: 'baz' }]
       await storage.insert(docs)
+
       expect(storage.find(null, { limit: 1 })).to.deep.equal([
         { id: 'id1', foo: 'bar' }
       ])
@@ -44,7 +44,7 @@ describe('Storage', () => {
       const storage = new ThinStorage()
       const ids = await storage.insert(docs)
       expect(ids.length).to.equal(2)
-      expect(getDocs(storage)).to.deep.equal([
+      expect(storage.find()).to.deep.equal([
         { id: '0000000000000001', foo: 'bar' },
         { id: '0000000000000002', bar: 'baz' }]
       )
@@ -59,15 +59,15 @@ describe('Storage', () => {
       const updated1 = await storage.update({ foo: 'bar' }, { foo: 'moo' })
       expect(updated1).to.equal(1)
       expect(storage.find()).to.deep.equal([
-        { id: '0000000000000004', bar: 'baz', yolo: 1 },
-        { id: '0000000000000003', foo: 'moo', yolo: 1 }
+        { id: '0000000000000003', foo: 'moo', yolo: 1 },
+        { id: '0000000000000004', bar: 'baz', yolo: 1 }
       ])
 
       const updated2 = await storage.update({ foo: 'moo' }, { foo: null })
       expect(updated2).to.equal(1)
       expect(storage.find()).to.deep.equal([
-        { id: '0000000000000004', bar: 'baz', yolo: 1 },
-        { id: '0000000000000003', yolo: 1 }
+        { id: '0000000000000003', yolo: 1 },
+        { id: '0000000000000004', bar: 'baz', yolo: 1 }
       ])
 
       const updated3 = await storage.update(doc => 'bar' in doc, { foo: 'baz' })
@@ -149,15 +149,15 @@ describe('Storage', () => {
       const docs = [{ foo: 'bar' }, { bar: 'baz' }]
       await storage.insert(docs)
 
-      expect(getDocs(storage)).to.deep.equal([
+      expect(storage.find()).to.deep.equal([
         { id: 'id1', foo: 'bar' },
         { id: 'id2', bar: 'baz' }
       ])
 
       await storage.fetch()
-      expect(getDocs(storage)).to.deep.equal([
-        { id: 'id2', bar: 'baz' },
-        { id: 'id1', foo: 'moo', yolo: 1 }
+      expect(storage.find()).to.deep.equal([
+        { id: 'id1', foo: 'moo', yolo: 1 },
+        { id: 'id2', bar: 'baz' }
       ])
     })
     it('inserts new documents with primary keys', async () => {
@@ -174,7 +174,7 @@ describe('Storage', () => {
       const docs = [{ foo: 'bar' }, { bar: 'baz' }]
       const ids = await storage.insert(docs)
       expect(ids).to.deep.equal(['id1', 'id2'])
-      expect(getDocs(storage)).to.deep.equal([
+      expect(storage.find()).to.deep.equal([
         { id: 'id1', foo: 'bar' },
         { id: 'id2', bar: 'baz' }
       ])
@@ -197,7 +197,7 @@ describe('Storage', () => {
           expect(e.message).to.equal('expected error')
         }
       })
-      expect(getDocs(storage)).to.deep.equal([])
+      expect(storage.find()).to.deep.equal([])
 
       // original docs unaltered
       expect(docs).to.deep.equal([{ foo: 'bar' }, { bar: 'baz' }])
@@ -221,8 +221,8 @@ describe('Storage', () => {
       const updated = await storage.update({ foo: 'bar' }, { foo: 'moo' })
       expect(updated).to.equal(1)
       expect(storage.find()).to.deep.equal([
-        { id: 'id2', bar: 'baz' },
-        { id: 'id1', foo: 'moo' }
+        { id: 'id1', foo: 'moo' },
+        { id: 'id2', bar: 'baz' }
       ])
 
       // by primary
@@ -330,7 +330,7 @@ describe('Storage', () => {
       const docs = [{ foo: 'bar' }, { bar: 'baz' }]
       const ids = await storage.insert(docs)
       expect(ids).to.deep.equal(['id1', 'id2'])
-      expect(getDocs(storage)).to.deep.equal([
+      expect(storage.find()).to.deep.equal([
         { id: 'id1', foo: 'bar', yolo: 1 },
         { id: 'id2', bar: 'baz', yolo: 1 }
       ])
@@ -373,8 +373,8 @@ describe('Storage', () => {
       const updated = await storage.update({}, { yolo: 1 })
       expect(updated).to.equal(1)
       expect(storage.find()).to.deep.equal([
-        { id: 'id2', bar: 'baz' },
-        { id: 'id1', foo: 'bar', yolo: 1 }
+        { id: 'id1', foo: 'bar', yolo: 1 },
+        { id: 'id2', bar: 'baz' }
       ])
 
       // original docs unaltered

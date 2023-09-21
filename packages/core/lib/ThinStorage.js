@@ -1,3 +1,7 @@
+import { Document } from './Document.js'
+
+const toDocument = o => new Document(o)
+
 /**
  * Minimal storage interface using a middleware stack.
  */
@@ -11,62 +15,35 @@ export class ThinStorage {
    * @param {object[]|object} [options.handler=[]]
    */
   constructor (options = {}) {
-    this.documents = options.documents || []
+    this.documents = options.documents || new Set()
     this.keys = new Map()
 
     this.name = options.name || 'storage'
     this.primary = options.primary || 'id'
-    this.setHandler(options.handler)
-    this.listeners = new Map(Object.entries({
-      change: new Set()
-    }))
+    this.hooks = new Map()
+    this.handler = options.handler ? toArray(options.handler) : []
+    this.handler.forEach(h => {
+      this.hasInsert = this.hasInsert || !!h.insert
+      this.hasUpdate = this.hasUpdate || !!h.update
+      this.hasRemove = this.hasRemove || !!h.remove
+      this.hasFetch = this.hasFetch || !!h.fetch
+    })
   }
 
-  /**
-   * Sets the middleware stack of handlers.
-   * @param {object[]|object} [handler=[]]
-   */
-  setHandler (handler = []) {
-    this.handler = toArray(handler)
-    this.hasInsert = this.handler.find(h => !!h.insert)
-    this.hasUpdate = this.handler.find(h => !!h.update)
-    this.hasRemove = this.handler.find(h => !!h.remove)
-    this.hasFetch = this.handler.find(h => !!h.fetch)
-  }
-
-  on (name, listener) {
-    const list = this.listeners.get(name)
-    if (!list) { return }
-    list.add(listener)
-  }
-
-  off (name, listener) {
-    const list = this.listeners.get(name)
-    if (!list) { return }
-    if (listener) {
-      list.remove(listener)
-    }
-    else {
-      list.clear()
-    }
+  on (name, fn) {
+    this.hooks.get(name)?.add(fn) || this.hooks.set(name, new Set(fn))
+    return () => this.hooks.get(name).remove(fn)
   }
 
   emit (name, options) {
-    const listeners = this.listeners.get(name)
-    if (!listeners?.size) { return }
-    const data = { ...options, size: this.documents.size }
-    listeners.forEach(fn => setTimeout(() => {
-      try { fn(data) } catch (e) { console.error(e) }
-    }, 0))
+    const hooks = this.hooks.get(name) || []
+    setTimeout(() => hooks.forEach(hook => hook(options)), 0)
   }
 
-  /**
-   * Clears the local documents and primary keys.
-   */
   clear () {
-    this.documents.length = 0
+    this.documents.clear()
     this.keys.clear()
-    this.emit('change', { type: 'clear' })
+    this.emit('change')
   }
 
   /**
@@ -81,16 +58,16 @@ export class ThinStorage {
   async fetch (query, options) {
     if (!this.hasFetch) { return -1 }
 
-    let documents = []
+    let fetched = []
     const fetchOptions = { ...options, ...getOptions(this) }
 
     for (const handler of this.handler) {
       if (handler.fetch) {
-        documents = await handler.fetch(query, fetchOptions, documents)
+        fetched = await handler.fetch(query, fetchOptions, fetched)
       }
     }
 
-    documents.forEach(doc => {
+    fetched.forEach(doc => {
       const key = doc[this.primary]
 
       if (!key) {
@@ -98,17 +75,18 @@ export class ThinStorage {
       }
 
       if (this.keys.has(key)) {
-        const index = this.keys.get(key)
-        this.documents[index] = doc
-      }
-      else {
-        this.keys.set(key, this.documents.length)
-        this.documents.push(doc)
+        const original = this.keys.get(key)
+        original.set(doc)
+      } else {
+        const wrapped = toDocument(doc)
+        this.keys.set(key, wrapped)
+        this.documents.add(wrapped)
       }
     })
 
-    this.emit('change', { type: 'fetch' })
-    return documents.length
+    this.emit('fetch', { documents: fetched })
+    this.emit('change')
+    return fetched.length
   }
 
   /**
@@ -149,20 +127,23 @@ export class ThinStorage {
       if (!primaries || primaries.length !== local.length) {
         throw new Error(`Insert return values expected to be of length (${primaries.length}), got (${local.length}) in storage ${this.name}`)
       }
-    }
-    else {
+    } else {
       primaries = local.map(() => incrementKey())
     }
 
     local.forEach((doc, index) => {
       const key = primaries[index]
       doc[this.primary] = key
-      this.keys.set(key, this.documents.length)
-      this.documents.push(doc)
+
+      const wrapped = toDocument(doc)
+      this.keys.set(key, wrapped)
+      this.documents.add(wrapped)
     })
 
     this.emit('change', { type: 'insert' })
     local.length = 0
+    this.emit('insert', { documents: local })
+    this.emit('change')
     return primaries
   }
 
@@ -198,8 +179,7 @@ export class ThinStorage {
           : value
         if (val === null) {
           delete copy[key]
-        }
-        else if (val !== undefined) {
+        } else if (val !== undefined) {
           copy[key] = val
         }
       })
@@ -221,15 +201,17 @@ export class ThinStorage {
 
     updated.forEach(doc => {
       const key = doc[this.primary]
-      const index = this.keys.get(key)
+      const original = this.keys.get(key)
 
-      if (!index) {
+      if (!original) {
         throw new Error(`Doc not found by primary key ${key}`)
       }
-      this.documents[index] = doc
+
+      original.set(doc)
     })
 
-    this.emit('change', { type: 'update' })
+    this.emit('update', { documents: updated })
+    this.emit('change')
     return updated.length
   }
 
@@ -258,16 +240,18 @@ export class ThinStorage {
     }
 
     removed.forEach(key => {
-      const index = this.keys.get(key)
+      const original = this.keys.get(key)
 
-      if (!index) {
+      if (!original) {
         throw new Error(`Doc not found by primary key ${key}`)
       }
-      this.documents.splice(index, 1)
+
+      this.documents.delete(original)
       this.keys.delete(key)
     })
 
-    this.emit('change', { type: 'remove' })
+    this.emit('remove', { documents: removed })
+    this.emit('change')
     return removed.length
   }
 
@@ -289,8 +273,8 @@ export class ThinStorage {
 
     if (queryType === 'string') {
       // string query is expected to be a primary key
-      const index = this.keys.get(query)
-      return typeof index === 'number' ? [this.documents[index]] : []
+      const doc = this.keys.get(query)
+      return doc ? [doc.get()] : []
     }
 
     if (queryType === 'function') {
@@ -316,13 +300,14 @@ export class ThinStorage {
   }
 }
 
-const toArray = a => Array.isArray(a) ? a : [a]
 const shallowCopies = docs => docs.map(doc => ({ ...doc }))
 const getOptions = ({ primary, name }) => ({ primary, name })
 const filterDocs = ({ docs, query, limit }) => {
   const filtered = []
 
-  for (const doc of docs) {
+  for (const wrapped of docs) {
+    const doc = wrapped.get()
+
     if (query(doc)) {
       filtered.push(doc)
     }
@@ -333,6 +318,7 @@ const filterDocs = ({ docs, query, limit }) => {
 
   return filtered
 }
+const toArray = x => Array.isArray(x) ? x : [x]
 const incrementKey = (() => {
   let count = 0
   return (length = 16) => (++count).toString(10).padStart(length, '0')
