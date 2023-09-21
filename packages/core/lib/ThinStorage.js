@@ -1,6 +1,4 @@
-import { Document } from './Document.js'
-
-const toDocument = o => new Document(o)
+import { createDocument } from './Document.js'
 
 /**
  * Minimal storage interface using a middleware stack.
@@ -9,19 +7,22 @@ export class ThinStorage {
   /**
    * creates a new instance
    * @param {object=} options
-   * @param {string} [options.set=new Set()]
-   * @param {string} [options.name='storage']
-   * @param {string} [options.primary='id']
-   * @param {object[]|object} [options.handler=[]]
+   * @param {string} [options.set=new Set()] provide your own set, for example to make it observable with Vue refs
+   * @param {string} [options.name='storage'] name of this storage, passed to middleware
+   * @param {string} [options.primary='id'] primary key property name, passed to middleware
+   * @param {function} [options.idGen=function():string] override id generation, applies only if no middleware is used
+   * @param {object[]|object} [options.handler=[]] the middleware stack of handlers
    */
   constructor (options = {}) {
-    this.documents = options.documents || new Set()
+    this.documents = options.set || new Set()
     this.keys = new Map()
+    this.hooks = new Map()
 
     this.name = options.name || 'storage'
     this.primary = options.primary || 'id'
-    this.hooks = new Map()
+    this.idGen = options.idGen || incrementKey
     this.handler = options.handler ? toArray(options.handler) : []
+
     this.handler.forEach(h => {
       this.hasInsert = this.hasInsert || !!h.insert
       this.hasUpdate = this.hasUpdate || !!h.update
@@ -31,13 +32,13 @@ export class ThinStorage {
   }
 
   on (name, fn) {
-    this.hooks.get(name)?.add(fn) || this.hooks.set(name, new Set(fn))
+    this.hooks.get(name)?.add(fn) || this.hooks.set(name, new Set([fn]))
     return () => this.hooks.get(name).remove(fn)
   }
 
   emit (name, options) {
-    const hooks = this.hooks.get(name) || []
-    setTimeout(() => hooks.forEach(hook => hook(options)), 0)
+    const hooks = this.hooks.get(name)
+    return hooks && setTimeout(() => hooks.forEach(hook => hook(options)), 0)
   }
 
   clear () {
@@ -78,7 +79,7 @@ export class ThinStorage {
         const original = this.keys.get(key)
         original.set(doc)
       } else {
-        const wrapped = toDocument(doc)
+        const wrapped = createDocument(doc)
         this.keys.set(key, wrapped)
         this.documents.add(wrapped)
       }
@@ -112,7 +113,7 @@ export class ThinStorage {
       throw new Error('Can\'t insert nothing')
     }
     documents = toArray(documents)
-    const local = shallowCopies(documents)
+    const local = copy(documents)
     let primaries = []
 
     if (this.hasInsert) {
@@ -128,20 +129,22 @@ export class ThinStorage {
         throw new Error(`Insert return values expected to be of length (${primaries.length}), got (${local.length}) in storage ${this.name}`)
       }
     } else {
-      primaries = local.map(() => incrementKey())
+      primaries.length = local.length
+
+      for (let i = 0; i < local.length; i++) {
+        primaries[i] = await this.idGen()
+      }
     }
 
     local.forEach((doc, index) => {
       const key = primaries[index]
       doc[this.primary] = key
 
-      const wrapped = toDocument(doc)
+      const wrapped = createDocument(doc)
       this.keys.set(key, wrapped)
       this.documents.add(wrapped)
     })
 
-    this.emit('change', { type: 'insert' })
-    local.length = 0
     this.emit('insert', { documents: local })
     this.emit('change')
     return primaries
@@ -168,7 +171,7 @@ export class ThinStorage {
       throw new Error(`Unexpected primary in modifier in store ${this.name}`)
     }
 
-    const local = shallowCopies(this.find(query, options))
+    const local = copy(this.find(query, options))
     const entries = Object.entries(modifier)
     let updated = local.map(doc => {
       const copy = ({ ...doc })
@@ -223,7 +226,7 @@ export class ThinStorage {
    * @return {Promise<number>} the number of removed documents
    */
   async remove (query, options = {}) {
-    const local = shallowCopies(this.find(query, options))
+    const local = copy(this.find(query, options))
     let removed = local.map(doc => doc[this.primary])
 
     if (this.hasRemove) {
@@ -262,13 +265,14 @@ export class ThinStorage {
    * @return {unknown[]|*[]}
    */
   find (query, options = {}) {
-    const { limit } = options
+    const { limit, looseMatching } = options
     const docs = this.documents
 
     if (!query) {
       return filterDocs({ docs, limit, query: () => true })
     }
 
+    const isArray = Array.isArray(query)
     const queryType = typeof query
 
     if (queryType === 'string') {
@@ -281,26 +285,52 @@ export class ThinStorage {
       return filterDocs({ docs, limit, query })
     }
 
-    if (queryType === 'object') {
-      const { looseMatching } = options
+    if (queryType === 'object' && !isArray) {
       const entries = Object.entries(query)
       if (entries.length === 0) {
         return filterDocs({ docs, limit, query: () => true })
       }
 
-      const byMatcher = doc => entries.every(([key, value]) => {
-        return looseMatching
-          ? doc[key] == value // eslint-disable-line
-          : doc[key] === value
-      })
+      const byMatcher = doc => entries.every(([key, value]) =>
+        toArray(value)
+          .some(val => looseMatching
+            ? doc[key] == val // eslint-disable-line
+            : doc[key] === val))
       return filterDocs({ docs, limit, query: byMatcher })
+    }
+
+    if (isArray) {
+      const subs = new Set()
+      const add = doc => limit > 0 && subs.length >= limit ? undefined : subs.add(doc)
+      for (const q of query) {
+        // beware this is a recursion, we hope you know what you are doing
+        this.find(q, { looseMatching }).forEach(add)
+      }
+      return [...subs]
     }
 
     throw new Error(`Unsupported query type "${queryType}"`)
   }
 }
 
-const shallowCopies = docs => docs.map(doc => ({ ...doc }))
+/***********
+ * private *
+ ***********/
+
+/**
+ * Creates shallow copies of a list of given docs
+ * @private
+ * @param docs
+ * @return {*}
+ */
+const copy = docs => docs.map(doc => ({ ...doc }))
+
+/**
+ * Extracts relevant properties to create options object
+ * @param primary
+ * @param name
+ * @return {{name, primary}}
+ */
 const getOptions = ({ primary, name }) => ({ primary, name })
 const filterDocs = ({ docs, query, limit }) => {
   const filtered = []
@@ -311,6 +341,7 @@ const filterDocs = ({ docs, query, limit }) => {
     if (query(doc)) {
       filtered.push(doc)
     }
+
     if (limit > 0 && filtered.length >= limit) {
       return filtered
     }
@@ -319,7 +350,5 @@ const filterDocs = ({ docs, query, limit }) => {
   return filtered
 }
 const toArray = x => Array.isArray(x) ? x : [x]
-const incrementKey = (() => {
-  let count = 0
-  return (length = 16) => (++count).toString(10).padStart(length, '0')
-})()
+const incrementKey = ((count) =>
+  (length = 16) => (++count).toString(10).padStart(length, '0'))(0)

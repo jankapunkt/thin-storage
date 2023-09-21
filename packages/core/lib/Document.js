@@ -5,7 +5,7 @@
  * @class
  * @internal
  */
-export class Document {
+class Document {
   /**
    * Creates a new instance. Requires a target document object.
    * @param target {object} the document object to point to.
@@ -41,3 +41,5 @@ export class Document {
  * @private
  */
 const refs = new WeakMap()
+
+export const createDocument = doc => new Document(doc)

@@ -14,10 +14,75 @@ const expectAsyncError = async ({ promise, onError }) => {
 
 describe('Storage', () => {
   describe('find / query', () => {
-    it('works with a single primary key string')
-    it('works with a list of primary key strings')
-    it('works with an object of key value pairs')
-    it('works with an object of key value-list pairs')
+    it('works with a single primary key string', async () => {
+      const storage = new ThinStorage({
+        handler: {
+          async insert () { return ['id1', 'id2'] }
+        }
+      })
+      const docs = [{ foo: 'bar' }, { bar: 'baz' }]
+      await storage.insert(docs)
+
+      expect(storage.find('id2')).to.deep.equal([
+        { id: 'id2', bar: 'baz' }
+      ])
+    })
+    it('works with a list of primary key strings', async () => {
+      const storage = new ThinStorage({
+        handler: {
+          async insert () { return ['id1', 'id2'] }
+        }
+      })
+      const docs = [{ foo: 'bar' }, { bar: 'baz' }]
+      await storage.insert(docs)
+
+      expect(storage.find(['id2', 'id1'])).to.deep.equal([
+        { id: 'id2', bar: 'baz' },
+        { id: 'id1', foo: 'bar' }
+      ])
+    })
+    it('works with an object of key value pairs',  async () => {
+      const storage = new ThinStorage({
+        handler: {
+          async insert () { return ['id1', 'id2'] }
+        }
+      })
+      const docs = [{ foo: 'bar' }, { bar: 'baz' }]
+      await storage.insert(docs)
+
+      expect(storage.find({ bar: 'baz' })).to.deep.equal([
+        { id: 'id2', bar: 'baz' }
+      ])
+    })
+    it('works with an object of key value-list pairs', async () => {
+      const storage = new ThinStorage({
+        handler: {
+          async insert () { return ['id1', 'id2'] }
+        }
+      })
+      const docs = [{ foo: 'bar' }, { bar: 'baz' }]
+      await storage.insert(docs)
+
+      expect(storage.find({ foo: ['moo', 'bar'] })).to.deep.equal([
+        { id: 'id1', foo: 'bar' }
+      ])
+    })
+    it('works with a list of objects', async () => {
+      const storage = new ThinStorage({
+        handler: {
+          async insert () { return ['id1', 'id2', 'id3'] }
+        }
+      })
+      const docs = [{ foo: 'bar', yolo: 1 }, { bar: 'baz' }, { moo: 'ha' }]
+      await storage.insert(docs)
+
+      // should not include the first entry multiple times
+      // even though we searched for it multiple itmes
+      expect(storage.find(['id1', { foo: 'bar' }, { yolo: 1 }, doc => 'moo' in doc])).to.deep.equal([
+        { id: 'id1', foo: 'bar', yolo: 1 },
+        { id: 'id3', moo: 'ha' }
+      ])
+    })
     it('returns docs with limit', async () => {
       const storage = new ThinStorage({
         handler: {
@@ -383,6 +448,22 @@ describe('Storage', () => {
     it('allows to pre-process remove docs with middleware')
   })
   describe('listeners', () => {
-    it('allows to listen to change events')
+    const handler = { async insert () { return ['id1', 'id2'] } }
+    const docs = () => [{ foo: 'bar' }, { bar: 'baz' }]
+
+    it('allows to listen to fetch events')
+    it('allows to listen to insert events', done => {
+      const storage = new ThinStorage({ handler })
+      storage.on('insert', ({ documents }) => {
+        expect(documents).to.deep.equal([
+          { id: 'id1', foo: 'bar' },
+          { id: 'id2', bar: 'baz' },
+        ])
+        done()
+      })
+      storage.insert(docs()).catch(expect.fail)
+    })
+    it('allows to listen to update events')
+    it('allows to listen to remove events')
   })
 })
