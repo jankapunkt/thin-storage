@@ -12,6 +12,10 @@ const expectAsyncError = async ({ promise, onError }) => {
   expect.fail('expected function to throw an error')
 }
 
+const asyncTimeout = ms => new Promise(resolve => {
+  setTimeout(() => resolve(), ms)
+})
+
 describe('Storage', () => {
   describe('find / query', () => {
     it('works with a single primary key string', async () => {
@@ -195,6 +199,26 @@ describe('Storage', () => {
       await storage.fetch()
       expect(storage.find()).to.deep.equal(docs)
     })
+    it('throws and aborts if fetched docs do not contain primary keys', async () => {
+      const storage = new ThinStorage({
+        name: 'testStorage',
+        handler: {
+          async fetch (query) {
+            return docs
+          }
+        }
+      })
+      const docs = [{ id: 'id1', foo: 'bar' }, { bar: 'baz' }]
+      expectAsyncError({
+        promise: storage.fetch(),
+        onError: e => {
+          expect(e.message).to.equal('Expected fetched document at index 1 to have primary key "id"')
+        }
+      })
+
+      // nothing imported
+      expect(storage.find()).to.deep.equal([])
+    })
     it('fetches and replaces existing docs with the remote', async () => {
       const storage = new ThinStorage({
         name: 'testStorage',
@@ -370,6 +394,7 @@ describe('Storage', () => {
     })
   })
   describe('multiple handler middleware', () => {
+    it('does not affect handlers when clearing the storage')
     it('allows to pre-process insert docs with middleware', async () => {
       const storage = new ThinStorage({
         handler: [
@@ -451,7 +476,24 @@ describe('Storage', () => {
     const handler = { async insert () { return ['id1', 'id2'] } }
     const docs = () => [{ foo: 'bar' }, { bar: 'baz' }]
 
-    it('allows to listen to fetch events')
+    it('allows to listen to fetch events', done => {
+      const storage = new ThinStorage({
+        handler: { async fetch () {
+          return [
+            { id: 'id1', foo: 'bar' },
+            { id: 'id2', bar: 'baz' },
+          ]
+        }}
+      })
+      storage.on('fetch', ({ documents }) => {
+        expect(documents).to.deep.equal([
+          { id: 'id1', foo: 'bar' },
+          { id: 'id2', bar: 'baz' },
+        ])
+        done()
+      })
+      storage.fetch().catch(done)
+    })
     it('allows to listen to insert events', done => {
       const storage = new ThinStorage({ handler })
       storage.on('insert', ({ documents }) => {
@@ -461,9 +503,91 @@ describe('Storage', () => {
         ])
         done()
       })
-      storage.insert(docs()).catch(expect.fail)
+      storage.insert(docs()).catch(done)
     })
-    it('allows to listen to update events')
-    it('allows to listen to remove events')
+    it('allows to listen to update events', done => {
+      const storage = new ThinStorage({ handler })
+      storage.on('update', ({ documents }) => {
+        expect(documents).to.deep.equal([
+          { id: 'id1', foo: 'bar', yolo: 1 },
+        ])
+        done()
+      })
+      storage.insert(docs())
+        .catch(done)
+        .then(() => {
+          storage.update('id1', { yolo: 1 }).catch(done)
+        })
+    })
+    it('allows to listen to remove events', done => {
+      const storage = new ThinStorage({ handler })
+      storage.on('remove', ({ documents }) => {
+        expect(documents).to.deep.equal(['id1'])
+        done()
+      })
+      storage.insert(docs())
+        .catch(done)
+        .then(() => {
+          storage.remove('id1').catch(done)
+        })
+    })
+    it('allows to listen to any change event', async () => {
+      const storage = new ThinStorage({
+        handler: {
+          async fetch () {
+            return [
+              { id: 'id1', foo: 'bar' },
+              { id: 'id2', bar: 'baz' },
+            ]
+          },
+          async insert () {
+            return ['id3', 'id4']
+          }
+        }
+      })
+      const result = []
+      storage.on('change', ({ type }) => {
+        result.push({ type, documents: storage.find() })
+      })
+      await storage.fetch()
+      await asyncTimeout(20)
+
+      await storage.insert(docs())
+      await asyncTimeout(20)
+
+      await storage.update('id1', { yolo: 1})
+      await asyncTimeout(20)
+
+      await storage.remove('id2')
+      await asyncTimeout(20)
+
+      storage.clear()
+      await asyncTimeout(20)
+
+      expect(result).to.deep.equal([
+        {
+          type: 'fetch', documents: [
+            { id: 'id1', foo: 'bar' }, { id: 'id2', bar: 'baz' }
+          ]
+        }, {
+          type: 'insert', documents: [
+            { id: 'id1', foo: 'bar' }, { id: 'id2', bar: 'baz' },
+            { id: 'id3', foo: 'bar' }, { id: 'id4', bar: 'baz' }
+          ]
+        }, {
+          type: 'update', documents: [
+            { id: 'id1', foo: 'bar', yolo: 1 }, { id: 'id2', bar: 'baz' },
+            { id: 'id3', foo: 'bar' }, { id: 'id4', bar: 'baz' }
+          ]
+        }, {
+          type: 'remove', documents: [
+            { id: 'id1', foo: 'bar', yolo: 1 },
+            { id: 'id3', foo: 'bar' }, { id: 'id4', bar: 'baz' }
+          ]
+        }, {
+          type: 'clear', documents: []
+        }
+      ])
+    })
   })
 })

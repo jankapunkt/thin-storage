@@ -43,8 +43,10 @@ export class ThinStorage {
 
   clear () {
     this.documents.clear()
+    const keys = [...this.keys.keys()]
     this.keys.clear()
-    this.emit('change')
+    this.emit('remove', { documents: keys })
+    this.emit('change', { type: 'clear' })
   }
 
   /**
@@ -68,11 +70,11 @@ export class ThinStorage {
       }
     }
 
-    fetched.forEach(doc => {
+    fetched.forEach((doc, i) => {
       const key = doc[this.primary]
 
       if (!key) {
-        throw new Error(`Expected document to have primary key "${this.primary}"`)
+        throw new Error(`Expected fetched document at index ${i} to have primary key "${this.primary}"`)
       }
 
       if (this.keys.has(key)) {
@@ -86,7 +88,7 @@ export class ThinStorage {
     })
 
     this.emit('fetch', { documents: fetched })
-    this.emit('change')
+    this.emit('change', { type: 'fetch' })
     return fetched.length
   }
 
@@ -108,7 +110,7 @@ export class ThinStorage {
    * @param {object|object[]} documents
    * @return {Promise<*[]>}
    */
-  async insert (documents) {
+  async insert (documents = []) {
     if (!documents || documents.length === 0) {
       throw new Error('Can\'t insert nothing')
     }
@@ -146,7 +148,7 @@ export class ThinStorage {
     })
 
     this.emit('insert', { documents: local })
-    this.emit('change')
+    this.emit('change', { type: 'insert' })
     return primaries
   }
 
@@ -204,17 +206,17 @@ export class ThinStorage {
 
     updated.forEach(doc => {
       const key = doc[this.primary]
-      const original = this.keys.get(key)
+      const wrapped = this.keys.get(key)
 
-      if (!original) {
+      if (!wrapped) {
         throw new Error(`Doc not found by primary key ${key}`)
       }
 
-      original.set(doc)
+      wrapped.set(doc)
     })
 
     this.emit('update', { documents: updated })
-    this.emit('change')
+    this.emit('change', { type: 'update'})
     return updated.length
   }
 
@@ -254,7 +256,7 @@ export class ThinStorage {
     })
 
     this.emit('remove', { documents: removed })
-    this.emit('change')
+    this.emit('change', { type: 'remove' })
     return removed.length
   }
 
