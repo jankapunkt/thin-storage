@@ -16,7 +16,8 @@
     "test:watch": "npm test -- --watch",
     "docs": "jsdoc --readme ../../README.md ./lib/*.js -d ./docs && jsdoc2md ./lib/*.js > ./API.md",
     "build": "rollup --config rollup.dist.config.js && tsc",
-    "build:full": "npm run docs && npm run build"
+    "build:full": "npm run docs && npm run build",
+    "prepublishOnly": "cp -v ../../README.md ../../LICENSE ."
   },
   "babel": {
     "presets": [
