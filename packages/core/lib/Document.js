@@ -42,4 +42,9 @@ class Document {
  */
 const refs = new WeakMap()
 
+/**
+ * Creates a new Document instance by given document object
+ * @param doc {object} the document object to reference
+ * @return {Document} a Document instance
+ */
 export const createDocument = doc => new Document(doc)

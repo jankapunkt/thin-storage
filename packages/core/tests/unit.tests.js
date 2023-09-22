@@ -86,6 +86,17 @@ describe('Storage', () => {
         { id: 'id1', foo: 'bar', yolo: 1 },
         { id: 'id3', moo: 'ha' }
       ])
+      // should respect limit
+      expect(storage.find(['id1', { foo: 'bar' }, { yolo: 1 }, doc => 'moo' in doc], {limit:1})).to.deep.equal([
+        { id: 'id1', foo: 'bar', yolo: 1 },
+      ])
+    })
+    it ('throws on unsupported query type', () => {
+      const storage = new ThinStorage()
+      ;[true, false, 1].forEach(query => {
+        expect(() => storage.find(query))
+          .to.throw(`Unsupported query type "${typeof query}"`)
+      })
     })
     it('returns docs with limit', async () => {
       const storage = new ThinStorage({
@@ -186,6 +197,7 @@ describe('Storage', () => {
     })
   })
   describe('single handler middleware', () => {
+
     it('fetches docs from the handlers', async () => {
       const storage = new ThinStorage({
         name: 'testStorage',
@@ -248,6 +260,24 @@ describe('Storage', () => {
         { id: 'id1', foo: 'moo', yolo: 1 },
         { id: 'id2', bar: 'baz' }
       ])
+    })
+    it('throws if the keys returned are not the same length as the insert docs', async  () => {
+      const storage = new ThinStorage({
+        name: 'testStorage',
+        handler: {
+          async insert (documents, options, primaries) {
+            return ['id1']
+          }
+        }
+      })
+
+      await expectAsyncError({
+        promise: storage.insert([{ foo: 'bar' }, { bar: 'baz' }]),
+        onError: e => {
+          expect(e.message).to.equal('Insert return values expected to be of length (1), got (2) in storage testStorage')
+        }
+      })
+
     })
     it('inserts new documents with primary keys', async () => {
       const storage = new ThinStorage({
@@ -394,7 +424,17 @@ describe('Storage', () => {
     })
   })
   describe('multiple handler middleware', () => {
-    it('does not affect handlers when clearing the storage')
+    it('does not affect handlers when clearing the storage', async () => {
+      const storage = new ThinStorage({
+        handler: {
+          insert: expect.fail,
+          update: expect.fail,
+          remove: expect.fail,
+          fetch: expect.fail,
+        }
+      })
+      storage.clear()
+    })
     it('allows to pre-process insert docs with middleware', async () => {
       const storage = new ThinStorage({
         handler: [
@@ -470,7 +510,48 @@ describe('Storage', () => {
       // original docs unaltered
       expect(docs).to.deep.equal([{ foo: 'bar' }, { bar: 'baz' }])
     })
-    it('allows to pre-process remove docs with middleware')
+    it('allows to pre-process remove docs with middleware', async () => {
+      const storage = new ThinStorage({
+        handler: [
+          {
+            async insert (documents, options, primaries) {
+              return ['id1', 'id2']
+            },
+            async remove (documents, options, removed) {
+              // remove last doc, which we won't delete
+              // as this middleware has decided
+              documents.pop()
+              removed.pop()
+              return removed
+            }
+          },
+          {
+            async remove (documents, options, removed) {
+              expect(documents.length).to.equal(1)
+              expect(removed.length).to.equal(1)
+              return removed
+            }
+          }
+        ]
+      })
+
+      const docs = [{ foo: 'bar' }, { bar: 'baz' }]
+      const ids = await storage.insert(docs)
+      expect(ids).to.deep.equal(['id1', 'id2'])
+      expect(storage.find()).to.deep.equal([
+        { id: 'id1', foo: 'bar' },
+        { id: 'id2', bar: 'baz' }
+      ])
+
+      const removed = await storage.remove({})
+      expect(removed).to.equal(1)
+      expect(storage.find()).to.deep.equal([
+        { id: 'id2', bar: 'baz' }
+      ])
+
+      // original docs unaltered
+      expect(docs).to.deep.equal([{ foo: 'bar' }, { bar: 'baz' }])
+    })
   })
   describe('listeners', () => {
     const handler = { async insert () { return ['id1', 'id2'] } }

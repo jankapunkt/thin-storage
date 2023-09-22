@@ -31,22 +31,44 @@ export class ThinStorage {
     })
   }
 
+  /**
+   * Adds a new listener function to a given event.
+   * @param name {string} name of the event
+   * @param fn {function} handler to run on emit
+   * @return {function(): *} returns a function to remove the listener
+   */
   on (name, fn) {
     this.hooks.get(name)?.add(fn) || this.hooks.set(name, new Set([fn]))
     return () => this.hooks.get(name).remove(fn)
   }
 
-  emit (name, options) {
-    const hooks = this.hooks.get(name)
-    return hooks && setTimeout(() => hooks.forEach(hook => hook(options)), 0)
-  }
-
+  /**
+   * Clears the local documents without informing the middleware.
+   * @fires Storage#remove
+   * @fires Storage#change
+   */
   clear () {
     this.documents.clear()
     const keys = [...this.keys.keys()]
     this.keys.clear()
-    this.emit('remove', { documents: keys })
-    this.emit('change', { type: 'clear' })
+
+    /**
+     * remove event.
+     *
+     * @event Storage#remove
+     * @type {object}
+     * @property {string[]} keys - the list of removed keys
+     */
+    emit(this, 'remove', { documents: keys })
+
+    /**
+     * change event.
+     *
+     * @event Storage#change
+     * @type {object}
+     * @property {string} type - the type this change is associated with
+     */
+    emit(this, 'change', { type: 'clear' })
   }
 
   /**
@@ -56,6 +78,9 @@ export class ThinStorage {
    *
    * @param query {object}
    * @param options {object=}
+   * @fires Storage#fetch
+   * @fires Storage#change
+   * @throws {Error} if any fetched document contains no primary key
    * @return {Promise<number>}
    */
   async fetch (query, options) {
@@ -87,8 +112,15 @@ export class ThinStorage {
       }
     })
 
-    this.emit('fetch', { documents: fetched })
-    this.emit('change', { type: 'fetch' })
+    /**
+     * fetch event.
+     *
+     * @event Storage#fetch
+     * @type {object}
+     * @property {object[]} documents - the list of fetched document objects
+     */
+    emit(this, 'fetch', { documents: fetched })
+    emit(this, 'change', { type: 'fetch' })
     return fetched.length
   }
 
@@ -108,12 +140,12 @@ export class ThinStorage {
    *  There is no insert operation, if any middleware throws an error.
    *
    * @param {object|object[]} documents
+   * @fires Storage#insert
+   * @fires Storage#change
+   * @throws {Error} if handler returns a list of primaries with a different length of documents to be inserted
    * @return {Promise<*[]>}
    */
   async insert (documents = []) {
-    if (!documents || documents.length === 0) {
-      throw new Error('Can\'t insert nothing')
-    }
     documents = toArray(documents)
     const local = copy(documents)
     let primaries = []
@@ -147,8 +179,15 @@ export class ThinStorage {
       this.documents.add(wrapped)
     })
 
-    this.emit('insert', { documents: local })
-    this.emit('change', { type: 'insert' })
+    /**
+     * insert event.
+     *
+     * @event Storage#insert
+     * @type {object}
+     * @property {object[]} documents - the list of inserted document objects
+     */
+    emit(this, 'insert', { documents: local })
+    emit(this, 'change', { type: 'insert' })
     return primaries
   }
 
@@ -169,10 +208,6 @@ export class ThinStorage {
    * @return {Promise<*>}
    */
   async update (query, modifier, options = {}) {
-    if (this.primary in modifier) {
-      throw new Error(`Unexpected primary in modifier in store ${this.name}`)
-    }
-
     const local = copy(this.find(query, options))
     const entries = Object.entries(modifier)
     let updated = local.map(doc => {
@@ -215,8 +250,8 @@ export class ThinStorage {
       wrapped.set(doc)
     })
 
-    this.emit('update', { documents: updated })
-    this.emit('change', { type: 'update'})
+    emit(this, 'update', { documents: updated })
+    emit(this, 'change', { type: 'update'})
     return updated.length
   }
 
@@ -255,8 +290,8 @@ export class ThinStorage {
       this.keys.delete(key)
     })
 
-    this.emit('remove', { documents: removed })
-    this.emit('change', { type: 'remove' })
+    emit(this, 'remove', { documents: removed })
+    emit(this, 'change', { type: 'remove' })
     return removed.length
   }
 
@@ -270,7 +305,7 @@ export class ThinStorage {
     const { limit, looseMatching } = options
     const docs = this.documents
 
-    if (!query) {
+    if (typeof query === 'undefined' || query === null) {
       return filterDocs({ docs, limit, query: () => true })
     }
 
@@ -303,7 +338,7 @@ export class ThinStorage {
 
     if (isArray) {
       const subs = new Set()
-      const add = doc => limit > 0 && subs.length >= limit ? undefined : subs.add(doc)
+      const add = doc => limit > 0 && subs.size >= limit ? undefined : subs.add(doc)
       for (const q of query) {
         // beware this is a recursion, we hope you know what you are doing
         this.find(q, { looseMatching }).forEach(add)
@@ -326,7 +361,10 @@ export class ThinStorage {
  * @return {*}
  */
 const copy = docs => docs.map(doc => ({ ...doc }))
-
+const emit = (self, name, options) => {
+  const hooks = self.hooks.get(name)
+  return hooks && setTimeout(() => hooks.forEach(hook => hook(options)), 0)
+}
 /**
  * Extracts relevant properties to create options object
  * @param primary
