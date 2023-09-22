@@ -2,6 +2,7 @@ import { createDocument } from './Document.js'
 
 /**
  * Minimal storage interface using a middleware stack.
+ * Documentation: https://github.com/jankapunkt/thin-storage
  */
 export class ThinStorage {
   /**
@@ -169,7 +170,6 @@ export class ThinStorage {
         primaries[i] = await this.idGen()
       }
     }
-
     local.forEach((doc, index) => {
       const key = primaries[index]
       doc[this.primary] = key
@@ -252,7 +252,7 @@ export class ThinStorage {
     })
 
     emit(this, 'update', { documents: updated })
-    emit(this, 'change', { type: 'update'})
+    emit(this, 'change', { type: 'update' })
     return updated.length
   }
 
@@ -365,6 +365,15 @@ export class ThinStorage {
  * @return {*}
  */
 const copy = docs => docs.map(doc => ({ ...doc }))
+
+/**
+ * Emitter function; extracted, so it can't be invoked from external.
+ * @private
+ * @param self
+ * @param name
+ * @param options
+ * @return {*|number}
+ */
 const emit = (self, name, options) => {
   const hooks = self.hooks.get(name)
   return hooks && setTimeout(() => hooks.forEach(hook => hook(options)), 0)
@@ -376,6 +385,16 @@ const emit = (self, name, options) => {
  * @return {{name, primary}}
  */
 const getOptions = ({ primary, name }) => ({ primary, name })
+
+/**
+ * Applies query to each document and adds the document to the list,
+ * if conditions apply and (optional) limit is not reached.
+ * @private
+ * @param docs
+ * @param query
+ * @param limit
+ * @return {*[]}
+ */
 const filterDocs = ({ docs, query, limit }) => {
   const filtered = []
 
@@ -393,6 +412,11 @@ const filterDocs = ({ docs, query, limit }) => {
 
   return filtered
 }
-const toArray = x => Array.isArray(x) ? x : [x]
+/**
+ * Transform any incoming argument to an array.
+ * @param x {*}
+ * @return {*[]}
+ */
+const toArray = x => typeof x === 'undefined' ? [] : Array.isArray(x) ? x : [x]
 const incrementKey = ((count) =>
   (length = 16) => (++count).toString(10).padStart(length, '0'))(0)

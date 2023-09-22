@@ -45,7 +45,7 @@ describe('Storage', () => {
         { id: 'id1', foo: 'bar' }
       ])
     })
-    it('works with an object of key value pairs',  async () => {
+    it('works with an object of key value pairs', async () => {
       const storage = new ThinStorage({
         handler: {
           async insert () { return ['id1', 'id2'] }
@@ -71,9 +71,9 @@ describe('Storage', () => {
       ;[1, '1', true].forEach(foo => {
         expect(storage.find({ foo }, options))
           .to.deep.equal([
-          { id: 'id1', foo: '1' },
-          { id: 'id2', foo: 1 }
-        ])
+            { id: 'id1', foo: '1' },
+            { id: 'id2', foo: 1 }
+          ])
       })
     })
     it('works with an object of key value-list pairs', async () => {
@@ -105,11 +105,11 @@ describe('Storage', () => {
         { id: 'id3', moo: 'ha' }
       ])
       // should respect limit
-      expect(storage.find(['id1', { foo: 'bar' }, { yolo: 1 }, doc => 'moo' in doc], {limit:1})).to.deep.equal([
-        { id: 'id1', foo: 'bar', yolo: 1 },
+      expect(storage.find(['id1', { foo: 'bar' }, { yolo: 1 }, doc => 'moo' in doc], { limit: 1 })).to.deep.equal([
+        { id: 'id1', foo: 'bar', yolo: 1 }
       ])
     })
-    it ('throws on unsupported query type', () => {
+    it('throws on unsupported query type', () => {
       const storage = new ThinStorage()
       ;[true, false, 1].forEach(query => {
         expect(() => storage.find(query))
@@ -215,7 +215,6 @@ describe('Storage', () => {
     })
   })
   describe('single handler middleware', () => {
-
     it('fetches docs from the handlers', async () => {
       const storage = new ThinStorage({
         name: 'testStorage',
@@ -279,7 +278,7 @@ describe('Storage', () => {
         { id: 'id2', bar: 'baz' }
       ])
     })
-    it('throws if the keys returned are not the same length as the insert docs', async  () => {
+    it('throws if the keys returned are not the same length as the insert docs', async () => {
       const storage = new ThinStorage({
         name: 'testStorage',
         handler: {
@@ -295,7 +294,6 @@ describe('Storage', () => {
           expect(e.message).to.equal('Insert return values expected to be of length (1), got (2) in storage testStorage')
         }
       })
-
     })
     it('inserts new documents with primary keys', async () => {
       const storage = new ThinStorage({
@@ -448,7 +446,7 @@ describe('Storage', () => {
           insert: expect.fail,
           update: expect.fail,
           remove: expect.fail,
-          fetch: expect.fail,
+          fetch: expect.fail
         }
       })
       storage.clear()
@@ -535,7 +533,7 @@ describe('Storage', () => {
             return ['id1', 'id2']
           },
           async update (docs) {
-            return docs.map((doc) => ({ ...doc, id: 'foo'}))
+            return docs.map((doc) => ({ ...doc, id: 'foo' }))
           }
         }
       })
@@ -572,7 +570,7 @@ describe('Storage', () => {
       expect(ids).to.deep.equal(['id1', 'id2'])
 
       await expectAsyncError({
-        promise: storage.update({}, {}, { strict: true}),
+        promise: storage.update({}, {}, { strict: true }),
         onError: e => {
           expect(e.message).to.equal('Update return values expected to be of length (2), got (1) in storage bar')
         }
@@ -689,17 +687,19 @@ describe('Storage', () => {
 
     it('allows to listen to fetch events', done => {
       const storage = new ThinStorage({
-        handler: { async fetch () {
-          return [
-            { id: 'id1', foo: 'bar' },
-            { id: 'id2', bar: 'baz' },
-          ]
-        }}
+        handler: {
+          async fetch () {
+            return [
+              { id: 'id1', foo: 'bar' },
+              { id: 'id2', bar: 'baz' }
+            ]
+          }
+        }
       })
       storage.on('fetch', ({ documents }) => {
         expect(documents).to.deep.equal([
           { id: 'id1', foo: 'bar' },
-          { id: 'id2', bar: 'baz' },
+          { id: 'id2', bar: 'baz' }
         ])
         done()
       })
@@ -710,7 +710,7 @@ describe('Storage', () => {
       storage.on('insert', ({ documents }) => {
         expect(documents).to.deep.equal([
           { id: 'id1', foo: 'bar' },
-          { id: 'id2', bar: 'baz' },
+          { id: 'id2', bar: 'baz' }
         ])
         done()
       })
@@ -720,7 +720,7 @@ describe('Storage', () => {
       const storage = new ThinStorage({ handler })
       storage.on('update', ({ documents }) => {
         expect(documents).to.deep.equal([
-          { id: 'id1', foo: 'bar', yolo: 1 },
+          { id: 'id1', foo: 'bar', yolo: 1 }
         ])
         done()
       })
@@ -748,7 +748,7 @@ describe('Storage', () => {
           async fetch () {
             return [
               { id: 'id1', foo: 'bar' },
-              { id: 'id2', bar: 'baz' },
+              { id: 'id2', bar: 'baz' }
             ]
           },
           async insert () {
@@ -766,7 +766,7 @@ describe('Storage', () => {
       await storage.insert(docs())
       await asyncTimeout(20)
 
-      await storage.update('id1', { yolo: 1})
+      await storage.update('id1', { yolo: 1 })
       await asyncTimeout(20)
 
       await storage.remove('id2')
@@ -777,21 +777,25 @@ describe('Storage', () => {
 
       expect(result).to.deep.equal([
         {
-          type: 'fetch', documents: [
+          type: 'fetch',
+          documents: [
             { id: 'id1', foo: 'bar' }, { id: 'id2', bar: 'baz' }
           ]
         }, {
-          type: 'insert', documents: [
+          type: 'insert',
+          documents: [
             { id: 'id1', foo: 'bar' }, { id: 'id2', bar: 'baz' },
             { id: 'id3', foo: 'bar' }, { id: 'id4', bar: 'baz' }
           ]
         }, {
-          type: 'update', documents: [
+          type: 'update',
+          documents: [
             { id: 'id1', foo: 'bar', yolo: 1 }, { id: 'id2', bar: 'baz' },
             { id: 'id3', foo: 'bar' }, { id: 'id4', bar: 'baz' }
           ]
         }, {
-          type: 'remove', documents: [
+          type: 'remove',
+          documents: [
             { id: 'id1', foo: 'bar', yolo: 1 },
             { id: 'id3', foo: 'bar' }, { id: 'id4', bar: 'baz' }
           ]
