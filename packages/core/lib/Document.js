@@ -1,6 +1,6 @@
 /**
  * Holds a reference to a document in the storage.
- * The reference can be swapped using the {set} method,
+ * The reference can be swapped using the {Document.set} method,
  * which in turn allows updating documents in the set without removing them.
  * @class
  * @internal

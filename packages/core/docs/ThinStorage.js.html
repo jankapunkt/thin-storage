@@ -1,4 +1,32 @@
-import { createDocument } from './Document.js'
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: ThinStorage.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: ThinStorage.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import { createDocument } from './Document.js'
 
 /**
  * Minimal storage interface using a middleware stack.
@@ -82,7 +110,7 @@ export class ThinStorage {
    * @fires Storage#fetch
    * @fires Storage#change
    * @throws {Error} if any fetched document contains no primary key
-   * @return {Promise<number>}
+   * @return {Promise&lt;number>}
    */
   async fetch (query, options) {
     if (!this.hasFetch) { return -1 }
@@ -144,7 +172,7 @@ export class ThinStorage {
    * @fires Storage#insert
    * @fires Storage#change
    * @throws {Error} if handler returns a list of primaries with a different length of documents to be inserted
-   * @return {Promise<Array.<Object>>}
+   * @return {Promise&lt;Array.&lt;Object>>}
    */
   async insert (documents = []) {
     documents = toArray(documents)
@@ -166,7 +194,7 @@ export class ThinStorage {
     } else {
       primaries.length = local.length
 
-      for (let i = 0; i < local.length; i++) {
+      for (let i = 0; i &lt; local.length; i++) {
         primaries[i] = await this.idGen()
       }
     }
@@ -206,7 +234,7 @@ export class ThinStorage {
    * @param {object} [options={}]
    * @param {boolean} [options.strict=] optional strict mode used to check for equal length queried and updated docs
    * @param {boolean} [options.strict=false]
-   * @return {Promise<*>}
+   * @return {Promise&lt;*>}
    */
   async update (query, modifier = {}, options = {}) {
     const local = copy(this.find(query, options))
@@ -235,7 +263,7 @@ export class ThinStorage {
         }
       }
 
-      if (options.strict && updated.length !== local.length) {
+      if (options.strict &amp;&amp; updated.length !== local.length) {
         throw new Error(`Update return values expected to be of length (${local.length}), got (${updated.length}) in storage ${this.name}`)
       }
     }
@@ -262,7 +290,7 @@ export class ThinStorage {
    * @param query {object|string|string[]|function}
    * @param {object} [options={}]
    * @param {boolean} [options.strict=] optional strict mode used to check for equal length queried and removed docs
-   * @return {Promise<number>} the number of removed documents
+   * @return {Promise&lt;number>} the number of removed documents
    */
   async remove (query, options = {}) {
     const local = copy(this.find(query, options))
@@ -276,7 +304,7 @@ export class ThinStorage {
           removed = await handler.remove(local, removeOptions, removed)
         }
       }
-      if (options.strict && removed.length !== local.length) {
+      if (options.strict &amp;&amp; removed.length !== local.length) {
         throw new Error(`Remove return values expected to be of length (${local.length}), got (${removed.length}) in storage ${this.name}`)
       }
     }
@@ -326,7 +354,7 @@ export class ThinStorage {
       return filterDocs({ docs, limit, query })
     }
 
-    if (queryType === 'object' && !isArray) {
+    if (queryType === 'object' &amp;&amp; !isArray) {
       const entries = Object.entries(query)
       if (entries.length === 0) {
         return filterDocs({ docs, limit, query: () => true })
@@ -342,7 +370,7 @@ export class ThinStorage {
 
     if (isArray) {
       const subs = new Set()
-      const add = doc => limit > 0 && subs.size >= limit ? undefined : subs.add(doc)
+      const add = doc => limit > 0 &amp;&amp; subs.size >= limit ? undefined : subs.add(doc)
       for (const q of query) {
         // beware this is a recursion, we hope you know what you are doing
         this.find(q, { loose }).forEach(add)
@@ -376,7 +404,7 @@ const copy = docs => docs.map(doc => ({ ...doc }))
  */
 const emit = (self, name, options) => {
   const hooks = self.hooks.get(name)
-  return hooks && setTimeout(() => hooks.forEach(hook => hook(options)), 0)
+  return hooks &amp;&amp; setTimeout(() => hooks.forEach(hook => hook(options)), 0)
 }
 /**
  * Extracts relevant properties to create options object
@@ -406,7 +434,7 @@ const filterDocs = ({ docs, query, limit }) => {
       filtered.push(doc)
     }
 
-    if (limit > 0 && filtered.length >= limit) {
+    if (limit > 0 &amp;&amp; filtered.length >= limit) {
       return filtered
     }
   }
@@ -417,8 +445,31 @@ const filterDocs = ({ docs, query, limit }) => {
  * Transform any incoming argument to an array.
  * @private
  * @param x {*}
- * @return {Array.<*>}
+ * @return {Array.&lt;*>}
  */
 const toArray = x => typeof x === 'undefined' ? [] : Array.isArray(x) ? x : [x]
 const incrementKey = ((count) =>
   (length = 16) => (++count).toString(10).padStart(length, '0'))(0)
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="Document.html">Document</a></li><li><a href="ThinStorage.html">ThinStorage</a></li></ul><h3>Events</h3><ul><li><a href="Storage.html#event:change">change</a></li><li><a href="Storage.html#event:fetch">fetch</a></li><li><a href="Storage.html#event:insert">insert</a></li><li><a href="Storage.html#event:remove">remove</a></li></ul><h3>Global</h3><ul><li><a href="global.html#createDocument">createDocument</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.2</a> on Fri Sep 22 2023 12:58:28 GMT+0200 (Central European Summer Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

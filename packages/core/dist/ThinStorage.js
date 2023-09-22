@@ -1,10 +1,59 @@
-import { createDocument } from './Document.js'
+/**
+ * Holds a reference to a document in the storage.
+ * The reference can be swapped using the {Document.set} method,
+ * which in turn allows updating documents in the set without removing them.
+ * @class
+ * @internal
+ */
+class Document {
+  /**
+   * Creates a new instance. Requires a target document object.
+   * @param target {object} the document object to point to.
+   * @constructor
+   */
+  constructor (target) { this.set(target); }
+
+  /**
+   * Returns the referenced document.
+   * @method
+   * @returns {object}
+   */
+  get () { return refs.get(this) }
+
+  /**
+   * Establishes a reference (= points) to the target document object.
+   * @method
+   * @throws {TypeError} if the document is not of type 'object'
+   * @param target {object} the document object to point to
+   */
+  set (target) {
+    if (typeof target !== 'object') {
+      throw new TypeError(`Expected object, got ${target}`)
+    }
+    refs.set(this, target);
+  }
+}
+
+/**
+ * Stores the actual reference to the documents.
+ * Each reference is keyed by each {Document} instance.
+ * @type {WeakMap<object, object>}
+ * @private
+ */
+const refs = new WeakMap();
+
+/**
+ * Creates a new Document instance by given document object
+ * @param doc {object} the document object to reference
+ * @return {Document} a Document instance
+ */
+const createDocument = doc => new Document(doc);
 
 /**
  * Minimal storage interface using a middleware stack.
  * Documentation: https://github.com/jankapunkt/thin-storage
  */
-export class ThinStorage {
+class ThinStorage {
   /**
    * creates a new instance
    * @param {object=} options
@@ -15,21 +64,21 @@ export class ThinStorage {
    * @param {object[]|object} [options.handler=[]] the middleware stack of handlers
    */
   constructor (options = {}) {
-    this.documents = options.set || new Set()
-    this.keys = new Map()
-    this.hooks = new Map()
+    this.documents = options.set || new Set();
+    this.keys = new Map();
+    this.hooks = new Map();
 
-    this.name = options.name || 'storage'
-    this.primary = options.primary || 'id'
-    this.idGen = options.idGen || incrementKey
-    this.handler = options.handler ? toArray(options.handler) : []
+    this.name = options.name || 'storage';
+    this.primary = options.primary || 'id';
+    this.idGen = options.idGen || incrementKey;
+    this.handler = options.handler ? toArray(options.handler) : [];
 
     this.handler.forEach(h => {
-      this.hasInsert = this.hasInsert || !!h.insert
-      this.hasUpdate = this.hasUpdate || !!h.update
-      this.hasRemove = this.hasRemove || !!h.remove
-      this.hasFetch = this.hasFetch || !!h.fetch
-    })
+      this.hasInsert = this.hasInsert || !!h.insert;
+      this.hasUpdate = this.hasUpdate || !!h.update;
+      this.hasRemove = this.hasRemove || !!h.remove;
+      this.hasFetch = this.hasFetch || !!h.fetch;
+    });
   }
 
   /**
@@ -39,7 +88,7 @@ export class ThinStorage {
    * @return {function(): *} returns a function to remove the listener
    */
   on (name, fn) {
-    this.hooks.get(name)?.add(fn) || this.hooks.set(name, new Set([fn]))
+    this.hooks.get(name)?.add(fn) || this.hooks.set(name, new Set([fn]));
     return () => this.hooks.get(name).remove(fn)
   }
 
@@ -49,9 +98,9 @@ export class ThinStorage {
    * @fires Storage#change
    */
   clear () {
-    this.documents.clear()
-    const keys = [...this.keys.keys()]
-    this.keys.clear()
+    this.documents.clear();
+    const keys = [...this.keys.keys()];
+    this.keys.clear();
 
     /**
      * remove event.
@@ -60,7 +109,7 @@ export class ThinStorage {
      * @type {object}
      * @property {string[]} keys - the list of removed keys
      */
-    emit(this, 'remove', { documents: keys })
+    emit(this, 'remove', { documents: keys });
 
     /**
      * change event.
@@ -69,7 +118,7 @@ export class ThinStorage {
      * @type {object}
      * @property {string} type - the type this change is associated with
      */
-    emit(this, 'change', { type: 'clear' })
+    emit(this, 'change', { type: 'clear' });
   }
 
   /**
@@ -87,31 +136,31 @@ export class ThinStorage {
   async fetch (query, options) {
     if (!this.hasFetch) { return -1 }
 
-    let fetched = []
-    const fetchOptions = { ...options, ...getOptions(this) }
+    let fetched = [];
+    const fetchOptions = { ...options, ...getOptions(this) };
 
     for (const handler of this.handler) {
       if (handler.fetch) {
-        fetched = await handler.fetch(query, fetchOptions, fetched)
+        fetched = await handler.fetch(query, fetchOptions, fetched);
       }
     }
 
     fetched.forEach((doc, i) => {
-      const key = doc[this.primary]
+      const key = doc[this.primary];
 
       if (!key) {
         throw new Error(`Expected fetched document at index ${i} to have primary key "${this.primary}"`)
       }
 
       if (this.keys.has(key)) {
-        const original = this.keys.get(key)
-        original.set(doc)
+        const original = this.keys.get(key);
+        original.set(doc);
       } else {
-        const wrapped = createDocument(doc)
-        this.keys.set(key, wrapped)
-        this.documents.add(wrapped)
+        const wrapped = createDocument(doc);
+        this.keys.set(key, wrapped);
+        this.documents.add(wrapped);
       }
-    })
+    });
 
     /**
      * fetch event.
@@ -120,8 +169,8 @@ export class ThinStorage {
      * @type {object}
      * @property {object[]} documents - the list of fetched document objects
      */
-    emit(this, 'fetch', { documents: fetched })
-    emit(this, 'change', { type: 'fetch' })
+    emit(this, 'fetch', { documents: fetched });
+    emit(this, 'change', { type: 'fetch' });
     return fetched.length
   }
 
@@ -147,16 +196,16 @@ export class ThinStorage {
    * @return {Promise<Array.<Object>>}
    */
   async insert (documents = []) {
-    documents = toArray(documents)
-    const local = copy(documents)
-    let primaries = []
+    documents = toArray(documents);
+    const local = copy(documents);
+    let primaries = [];
 
     if (this.hasInsert) {
-      const options = getOptions(this)
+      const options = getOptions(this);
 
       for (const handler of this.handler) {
         if (handler.insert) {
-          primaries = await handler.insert(local, options, primaries)
+          primaries = await handler.insert(local, options, primaries);
         }
       }
 
@@ -164,20 +213,20 @@ export class ThinStorage {
         throw new Error(`Insert return values expected to be of length (${primaries.length}), got (${local.length}) in storage ${this.name}`)
       }
     } else {
-      primaries.length = local.length
+      primaries.length = local.length;
 
       for (let i = 0; i < local.length; i++) {
-        primaries[i] = await this.idGen()
+        primaries[i] = await this.idGen();
       }
     }
     local.forEach((doc, index) => {
-      const key = primaries[index]
-      doc[this.primary] = key
+      const key = primaries[index];
+      doc[this.primary] = key;
 
-      const wrapped = createDocument(doc)
-      this.keys.set(key, wrapped)
-      this.documents.add(wrapped)
-    })
+      const wrapped = createDocument(doc);
+      this.keys.set(key, wrapped);
+      this.documents.add(wrapped);
+    });
 
     /**
      * insert event.
@@ -186,8 +235,8 @@ export class ThinStorage {
      * @type {object}
      * @property {object[]} documents - the list of inserted document objects
      */
-    emit(this, 'insert', { documents: local })
-    emit(this, 'change', { type: 'insert' })
+    emit(this, 'insert', { documents: local });
+    emit(this, 'change', { type: 'insert' });
     return primaries
   }
 
@@ -209,29 +258,29 @@ export class ThinStorage {
    * @return {Promise<*>}
    */
   async update (query, modifier = {}, options = {}) {
-    const local = copy(this.find(query, options))
-    const entries = Object.entries(modifier)
+    const local = copy(this.find(query, options));
+    const entries = Object.entries(modifier);
     let updated = local.map(doc => {
-      const copy = ({ ...doc })
+      const copy = ({ ...doc });
 
       entries.forEach(([key, value]) => {
         const val = typeof value === 'function'
           ? value(copy[key])
-          : value
+          : value;
         if (val === null) {
-          delete copy[key]
+          delete copy[key];
         } else if (val !== undefined) {
-          copy[key] = val
+          copy[key] = val;
         }
-      })
+      });
       return copy
-    })
+    });
 
     if (this.hasUpdate) {
-      const updateOptions = { ...options, ...getOptions(this) }
+      const updateOptions = { ...options, ...getOptions(this) };
       for (const handler of this.handler) {
         if (handler.update) {
-          updated = await handler.update(local, modifier, updateOptions, updated)
+          updated = await handler.update(local, modifier, updateOptions, updated);
         }
       }
 
@@ -241,18 +290,18 @@ export class ThinStorage {
     }
 
     updated.forEach(doc => {
-      const key = doc[this.primary]
-      const wrapped = this.keys.get(key)
+      const key = doc[this.primary];
+      const wrapped = this.keys.get(key);
 
       if (!wrapped) {
         throw new Error(`Doc not found by primary key ${key} in storage ${this.name}`)
       }
 
-      wrapped.set(doc)
-    })
+      wrapped.set(doc);
+    });
 
-    emit(this, 'update', { documents: updated })
-    emit(this, 'change', { type: 'update' })
+    emit(this, 'update', { documents: updated });
+    emit(this, 'change', { type: 'update' });
     return updated.length
   }
 
@@ -265,15 +314,15 @@ export class ThinStorage {
    * @return {Promise<number>} the number of removed documents
    */
   async remove (query, options = {}) {
-    const local = copy(this.find(query, options))
-    let removed = local.map(doc => doc[this.primary])
+    const local = copy(this.find(query, options));
+    let removed = local.map(doc => doc[this.primary]);
 
     if (this.hasRemove) {
-      const removeOptions = { ...options, ...getOptions(this) }
+      const removeOptions = { ...options, ...getOptions(this) };
 
       for (const handler of this.handler) {
         if (handler.remove) {
-          removed = await handler.remove(local, removeOptions, removed)
+          removed = await handler.remove(local, removeOptions, removed);
         }
       }
       if (options.strict && removed.length !== local.length) {
@@ -282,18 +331,18 @@ export class ThinStorage {
     }
 
     removed.forEach(key => {
-      const original = this.keys.get(key)
+      const original = this.keys.get(key);
 
       if (!original) {
         throw new Error(`Doc not found by primary key ${key} in storage ${this.name}`)
       }
 
-      this.documents.delete(original)
-      this.keys.delete(key)
-    })
+      this.documents.delete(original);
+      this.keys.delete(key);
+    });
 
-    emit(this, 'remove', { documents: removed })
-    emit(this, 'change', { type: 'remove' })
+    emit(this, 'remove', { documents: removed });
+    emit(this, 'change', { type: 'remove' });
     return removed.length
   }
 
@@ -306,19 +355,19 @@ export class ThinStorage {
    * @returns {object[]}
    */
   find (query, options = {}) {
-    const { limit, loose } = options
-    const docs = this.documents
+    const { limit, loose } = options;
+    const docs = this.documents;
 
     if (typeof query === 'undefined' || query === null) {
       return filterDocs({ docs, limit, query: () => true })
     }
 
-    const isArray = Array.isArray(query)
-    const queryType = typeof query
+    const isArray = Array.isArray(query);
+    const queryType = typeof query;
 
     if (queryType === 'string') {
       // string query is expected to be a primary key
-      const doc = this.keys.get(query)
+      const doc = this.keys.get(query);
       return doc ? [doc.get()] : []
     }
 
@@ -327,7 +376,7 @@ export class ThinStorage {
     }
 
     if (queryType === 'object' && !isArray) {
-      const entries = Object.entries(query)
+      const entries = Object.entries(query);
       if (entries.length === 0) {
         return filterDocs({ docs, limit, query: () => true })
       }
@@ -336,16 +385,16 @@ export class ThinStorage {
         toArray(value)
           .some(val => loose
             ? doc[key] == val // eslint-disable-line
-            : doc[key] === val))
+            : doc[key] === val));
       return filterDocs({ docs, limit, query: byMatcher })
     }
 
     if (isArray) {
-      const subs = new Set()
-      const add = doc => limit > 0 && subs.size >= limit ? undefined : subs.add(doc)
+      const subs = new Set();
+      const add = doc => limit > 0 && subs.size >= limit ? undefined : subs.add(doc);
       for (const q of query) {
         // beware this is a recursion, we hope you know what you are doing
-        this.find(q, { loose }).forEach(add)
+        this.find(q, { loose }).forEach(add);
       }
       return [...subs]
     }
@@ -364,7 +413,7 @@ export class ThinStorage {
  * @param docs
  * @return {*}
  */
-const copy = docs => docs.map(doc => ({ ...doc }))
+const copy = docs => docs.map(doc => ({ ...doc }));
 
 /**
  * Emitter function; extracted, so it can't be invoked from external.
@@ -375,9 +424,9 @@ const copy = docs => docs.map(doc => ({ ...doc }))
  * @return {*|number}
  */
 const emit = (self, name, options) => {
-  const hooks = self.hooks.get(name)
+  const hooks = self.hooks.get(name);
   return hooks && setTimeout(() => hooks.forEach(hook => hook(options)), 0)
-}
+};
 /**
  * Extracts relevant properties to create options object
  * @private
@@ -385,7 +434,7 @@ const emit = (self, name, options) => {
  * @param name
  * @return {{name, primary}}
  */
-const getOptions = ({ primary, name }) => ({ primary, name })
+const getOptions = ({ primary, name }) => ({ primary, name });
 
 /**
  * Applies query to each document and adds the document to the list,
@@ -397,13 +446,13 @@ const getOptions = ({ primary, name }) => ({ primary, name })
  * @return {object[]}
  */
 const filterDocs = ({ docs, query, limit }) => {
-  const filtered = []
+  const filtered = [];
 
   for (const wrapped of docs) {
-    const doc = wrapped.get()
+    const doc = wrapped.get();
 
     if (query(doc)) {
-      filtered.push(doc)
+      filtered.push(doc);
     }
 
     if (limit > 0 && filtered.length >= limit) {
@@ -412,13 +461,16 @@ const filterDocs = ({ docs, query, limit }) => {
   }
 
   return filtered
-}
+};
 /**
  * Transform any incoming argument to an array.
  * @private
  * @param x {*}
  * @return {Array.<*>}
  */
-const toArray = x => typeof x === 'undefined' ? [] : Array.isArray(x) ? x : [x]
+const toArray = x => typeof x === 'undefined' ? [] : Array.isArray(x) ? x : [x];
 const incrementKey = ((count) =>
-  (length = 16) => (++count).toString(10).padStart(length, '0'))(0)
+  (length = 16) => (++count).toString(10).padStart(length, '0'))(0);
+
+export { ThinStorage };
+//# sourceMappingURL=ThinStorage.js.map

@@ -1,100 +1,80 @@
 ## Classes
 
 <dl>
-<dt><a href="#SuperTool">SuperTool</a></dt>
-<dd><p>The super tool class. Holds a state and implements the execute command.</p>
+<dt><a href="#Document">Document</a></dt>
+<dd><p>Holds a reference to a document in the storage.
+The reference can be swapped using the {Document.set} method,
+which in turn allows updating documents in the set without removing them.</p>
+</dd>
+<dt><a href="#ThinStorage">ThinStorage</a></dt>
+<dd><p>Minimal storage interface using a middleware stack.
+Documentation: <a href="https://github.com/jankapunkt/thin-storage">https://github.com/jankapunkt/thin-storage</a></p>
 </dd>
 </dl>
 
 ## Constants
 
 <dl>
-<dt><a href="#exists">exists</a> ⇒ <code>boolean</code></dt>
-<dd><p>Returns true of a given parameter is not null and not undefined.</p>
+<dt><a href="#createDocument">createDocument</a> ⇒ <code><a href="#Document">Document</a></code></dt>
+<dd><p>Creates a new Document instance by given document object</p>
 </dd>
 </dl>
 
-<a name="SuperTool"></a>
+<a name="Document"></a>
 
-## SuperTool
-The super tool class. Holds a state and implements the execute command.
+## Document
+Holds a reference to a document in the storage.
+The reference can be swapped using the {Document.set} method,
+which in turn allows updating documents in the set without removing them.
 
 **Kind**: global class  
+**Internal**:   
 
-* [SuperTool](#SuperTool)
-    * [new SuperTool(state)](#new_SuperTool_new)
-    * _instance_
-        * [.state(value)](#SuperTool+state) ⇒ <code>String</code>
-        * [.execute()](#SuperTool+execute) ⇒ <code>string</code>
-    * _static_
-        * [.states](#SuperTool.states) ⇒ <code>Object</code>
-        * [.validateState(value)](#SuperTool.validateState)
+* [Document](#Document)
+    * [new Document(target)](#new_Document_new)
+    * [.get()](#Document+get) ⇒ <code>object</code>
+    * [.set(target)](#Document+set)
 
-<a name="new_SuperTool_new"></a>
+<a name="new_Document_new"></a>
 
-### new SuperTool(state)
-Constructor initializes the state. If none is given, it defaults to {'great'}.
+### new Document(target)
+Creates a new instance. Requires a target document object.
 
-**Throws**:
-
-- if state is not a valid state
-
-
-| Param | Description |
-| --- | --- |
-| state | one of the SuperTool.state values |
-
-<a name="SuperTool+state"></a>
-
-### superTool.state(value) ⇒ <code>String</code>
-Validates and sets a new state value if given and returns the updated value. If no defined value is given it just returns the
-current state value.
-
-**Kind**: instance method of [<code>SuperTool</code>](#SuperTool)  
-**Returns**: <code>String</code> - the current state value  
 
 | Param | Type | Description |
 | --- | --- | --- |
-| value | <code>String</code> \| <code>undefined</code> | optional state to be set. |
+| target | <code>object</code> | the document object to point to. |
 
-<a name="SuperTool+execute"></a>
+<a name="Document+get"></a>
 
-### superTool.execute() ⇒ <code>string</code>
-Executes with the current internal state.
+### document.get() ⇒ <code>object</code>
+Returns the referenced document.
 
-**Kind**: instance method of [<code>SuperTool</code>](#SuperTool)  
-**Returns**: <code>string</code> - the execution including the current state.  
-<a name="SuperTool.states"></a>
+**Kind**: instance method of [<code>Document</code>](#Document)  
+<a name="Document+set"></a>
 
-### SuperTool.states ⇒ <code>Object</code>
-The possible states of the SuperTool.
+### document.set(target)
+Establishes a reference (= points) to the target document object.
 
-**Kind**: static property of [<code>SuperTool</code>](#SuperTool)  
-<a name="SuperTool.validateState"></a>
-
-### SuperTool.validateState(value)
-Validates a state. To be valid, the value needs to be part of the {SuperTool.states}.
-Throws an Error if invalid. Returns void / undefined if passed.
-
-**Kind**: static method of [<code>SuperTool</code>](#SuperTool)  
+**Kind**: instance method of [<code>Document</code>](#Document)  
 **Throws**:
 
-- if state is not a valid state
+- <code>TypeError</code> if the document is not of type 'object'
 
 
-| Param | Description |
-| --- | --- |
-| value | The state candidate to be validated. |
+| Param | Type | Description |
+| --- | --- | --- |
+| target | <code>object</code> | the document object to point to |
 
-<a name="exists"></a>
+<a name="createDocument"></a>
 
-## exists ⇒ <code>boolean</code>
-Returns true of a given parameter is not null and not undefined.
+## createDocument ⇒ [<code>Document</code>](#Document)
+Creates a new Document instance by given document object
 
 **Kind**: global constant  
-**Returns**: <code>boolean</code> - true if defined, otherwise false  
+**Returns**: [<code>Document</code>](#Document) - a Document instance  
 
-| Param | Description |
-| --- | --- |
-| any | any input is feasible |
+| Param | Type | Description |
+| --- | --- | --- |
+| doc | <code>object</code> | the document object to reference |
 

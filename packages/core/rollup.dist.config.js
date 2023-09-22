@@ -2,32 +2,32 @@ import { babel, getBabelOutputPlugin } from '@rollup/plugin-babel'
 import commonjs from '@rollup/plugin-commonjs'
 
 export default [{
-  input: 'lib/Storage.js',
+  input: 'lib/ThinStorage.js',
   output: [
     {
-      file: 'dist/Storage.js',
+      file: 'dist/ThinStorage.js',
       format: 'es',
       sourcemap: true
     },
     {
-      file: 'dist/Storage.es5.js',
+      file: 'dist/ThinStorage.es5.js',
       format: 'es',
       plugins: [getBabelOutputPlugin({ presets: ['@babel/preset-env'] })],
       sourcemap: true
     },
     {
-      file: 'dist/Storage.cjs.js',
+      file: 'dist/ThinStorage.cjs.js',
       format: 'cjs',
       plugins: [getBabelOutputPlugin({ presets: ['@babel/preset-env'] })],
       sourcemap: true
     }
   ]
 }, {
-  input: 'lib/Storage.js',
+  input: 'lib/ThinStorage.js',
   output: {
-    file: 'dist/Storage.iife.js',
+    file: 'dist/ThinStorage.iife.js',
     format: 'iife',
-    name: 'Storage',
+    name: 'ThinStorage',
     sourcemap: true
   },
   plugins: [

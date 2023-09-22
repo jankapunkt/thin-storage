@@ -1,6 +1,6 @@
 {
   "include": [
-    "lib/*.js"
+    "dist/ThinStorage.js"
   ],
   "compilerOptions": {
     "declaration": true,

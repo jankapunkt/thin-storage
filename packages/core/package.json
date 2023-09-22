@@ -6,6 +6,7 @@
   "main": "dist/Storage.cjs.js",
   "browser": "dist/Storage.iife.js",
   "exports": "./dist/Storage.js",
+  "types": "dist/ThinStorage.d.ts",
   "scripts": {
     "lint": "standard | snazzy",
     "lint:fix": "standard --fix | snazzy",
@@ -13,8 +14,8 @@
     "test": "mocha \"tests/**/*.tests.js\"",
     "test:coverage": "NODE_ENV=test c8 --all --include=lib/* --reporter=html --reporter=text mocha \"tests/**/*.tests.js\"",
     "test:watch": "npm test -- --watch",
-    "docs": "jsdoc --readme README.md ./lib/*.js -d ./docs && jsdoc2md ./lib/*.js > ./API.md",
-    "build": "rollup --config rollup.dist.config.js",
+    "docs": "jsdoc --readme ../../README.md ./lib/*.js -d ./docs && jsdoc2md ./lib/*.js > ./API.md",
+    "build": "rollup --config rollup.dist.config.js && tsc",
     "build:full": "npm run docs && npm run build"
   },
   "babel": {
@@ -28,10 +29,6 @@
         ]
       }
     }
-  },
-  "nyc": {
-    "sourceMap": false,
-    "instrument": false
   },
   "standard": {
     "ignore": [
