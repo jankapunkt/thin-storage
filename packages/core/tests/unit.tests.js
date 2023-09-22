@@ -58,6 +58,24 @@ describe('Storage', () => {
         { id: 'id2', bar: 'baz' }
       ])
     })
+    it('can apply loose equality mathing', async () => {
+      const storage = new ThinStorage({
+        handler: {
+          async insert () { return ['id1', 'id2'] }
+        }
+      })
+      const docs = [{ foo: '1' }, { foo: 1 }]
+      await storage.insert(docs)
+      const options = { loose: true }
+
+      ;[1, '1', true].forEach(foo => {
+        expect(storage.find({ foo }, options))
+          .to.deep.equal([
+          { id: 'id1', foo: '1' },
+          { id: 'id2', foo: 1 }
+        ])
+      })
+    })
     it('works with an object of key value-list pairs', async () => {
       const storage = new ThinStorage({
         handler: {
@@ -510,6 +528,62 @@ describe('Storage', () => {
       // original docs unaltered
       expect(docs).to.deep.equal([{ foo: 'bar' }, { bar: 'baz' }])
     })
+    it('throws if returned update docs do no match any docs by primary key', async () => {
+      const storage = new ThinStorage({
+        handler: {
+          async insert () {
+            return ['id1', 'id2']
+          },
+          async update (docs) {
+            return docs.map((doc) => ({ ...doc, id: 'foo'}))
+          }
+        }
+      })
+
+      const docs = [{ foo: 'bar' }, { bar: 'baz' }]
+      const ids = await storage.insert(docs)
+      expect(ids).to.deep.equal(['id1', 'id2'])
+      await storage.insert(docs)
+      await expectAsyncError({
+        promise: storage.update({}),
+        onError: e => {
+          expect(e.message).to.equal('Doc not found by primary key foo in storage storage')
+        }
+      })
+      // original docs unaltered
+      expect(docs).to.deep.equal([{ foo: 'bar' }, { bar: 'baz' }])
+    })
+    it('throws if strict mode and updated docs do not equal queued docs for update', async () => {
+      const storage = new ThinStorage({
+        name: 'bar',
+        handler: {
+          async insert () {
+            return ['id1', 'id2']
+          },
+          async update (docs, modifier, options, updated) {
+            updated.pop()
+            return updated
+          }
+        }
+      })
+
+      const docs = [{ foo: 'bar' }, { bar: 'baz' }]
+      const ids = await storage.insert(docs)
+      expect(ids).to.deep.equal(['id1', 'id2'])
+
+      await expectAsyncError({
+        promise: storage.update({}, {}, { strict: true}),
+        onError: e => {
+          expect(e.message).to.equal('Update return values expected to be of length (2), got (1) in storage bar')
+        }
+      })
+
+      // stored docs unaltered
+      expect(storage.find()).to.deep.equal([{ id: 'id1', foo: 'bar' }, { id: 'id2', bar: 'baz' }])
+
+      // original docs unaltered
+      expect(docs).to.deep.equal([{ foo: 'bar' }, { bar: 'baz' }])
+    })
     it('allows to pre-process remove docs with middleware', async () => {
       const storage = new ThinStorage({
         handler: [
@@ -548,6 +622,62 @@ describe('Storage', () => {
       expect(storage.find()).to.deep.equal([
         { id: 'id2', bar: 'baz' }
       ])
+
+      // original docs unaltered
+      expect(docs).to.deep.equal([{ foo: 'bar' }, { bar: 'baz' }])
+    })
+    it('throws if doc to be removed is not found by primary key', async () => {
+      const storage = new ThinStorage({
+        handler: [
+          {
+            async insert (documents, options, primaries) {
+              return ['id1', 'id2']
+            },
+            async remove (documents, options, removed) {
+              removed[0] = 'foo'
+              return removed
+            }
+          }
+        ]
+      })
+
+      const docs = [{ foo: 'bar' }, { bar: 'baz' }]
+      const ids = await storage.insert(docs)
+      expect(ids).to.deep.equal(['id1', 'id2'])
+
+      await expectAsyncError({
+        promise: storage.remove({}),
+        onError: e => {
+          expect(e.message).to.equal('Doc not found by primary key foo in storage storage')
+        }
+      })
+
+      // original docs unaltered
+      expect(docs).to.deep.equal([{ foo: 'bar' }, { bar: 'baz' }])
+    })
+    it('throws in strict mode if removed length is not queried length', async () => {
+      const storage = new ThinStorage({
+        handler: [
+          {
+            async insert (documents, options, primaries) {
+              return ['id1', 'id2']
+            },
+            async remove (documents, options, removed) {
+              removed.pop()
+              return removed
+            }
+          }
+        ]
+      })
+
+      const docs = [{ foo: 'bar' }, { bar: 'baz' }]
+      await storage.insert(docs)
+      await expectAsyncError({
+        promise: storage.remove({}, { strict: true }),
+        onError: e => {
+          expect(e.message).to.equal('Remove return values expected to be of length (2), got (1) in storage storage')
+        }
+      })
 
       // original docs unaltered
       expect(docs).to.deep.equal([{ foo: 'bar' }, { bar: 'baz' }])

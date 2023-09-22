@@ -202,12 +202,13 @@ export class ThinStorage {
    *
    * If a middleware throws an error then there will be no update at all.
    *
-   * @param query
-   * @param modifier
-   * @param options
+   * @param {object} query
+   * @param {object} [options={}]
+   * @param {boolean} [options.strict=] optional strict mode used to check for equal length queried and updated docs
+   * @param {boolean} [options.strict=false]
    * @return {Promise<*>}
    */
-  async update (query, modifier, options = {}) {
+  async update (query, modifier = {}, options = {}) {
     const local = copy(this.find(query, options))
     const entries = Object.entries(modifier)
     let updated = local.map(doc => {
@@ -234,8 +235,8 @@ export class ThinStorage {
         }
       }
 
-      if (updated.length !== local.length) {
-        throw new Error(`Update return values expected to be of length (${updated.length}), got (${local.length}) in storage ${this.name}`)
+      if (options.strict && updated.length !== local.length) {
+        throw new Error(`Update return values expected to be of length (${local.length}), got (${updated.length}) in storage ${this.name}`)
       }
     }
 
@@ -244,7 +245,7 @@ export class ThinStorage {
       const wrapped = this.keys.get(key)
 
       if (!wrapped) {
-        throw new Error(`Doc not found by primary key ${key}`)
+        throw new Error(`Doc not found by primary key ${key} in storage ${this.name}`)
       }
 
       wrapped.set(doc)
@@ -259,7 +260,8 @@ export class ThinStorage {
    * Removes documents from the storage by given query.
    * If a middleware with remove implementation does not exist then the change is applied immediately.
    * @param query {object|string|string[]|function}
-   * @param options {object=}
+   * @param {object} [options={}]
+   * @param {boolean} [options.strict=] optional strict mode used to check for equal length queried and removed docs
    * @return {Promise<number>} the number of removed documents
    */
   async remove (query, options = {}) {
@@ -274,8 +276,8 @@ export class ThinStorage {
           removed = await handler.remove(local, removeOptions, removed)
         }
       }
-      if (removed.length !== local.length) {
-        throw new Error(`Remove return values expected to be of length (${removed.length}), got (${local.length}) in storage ${this.name}`)
+      if (options.strict && removed.length !== local.length) {
+        throw new Error(`Remove return values expected to be of length (${local.length}), got (${removed.length}) in storage ${this.name}`)
       }
     }
 
@@ -283,7 +285,7 @@ export class ThinStorage {
       const original = this.keys.get(key)
 
       if (!original) {
-        throw new Error(`Doc not found by primary key ${key}`)
+        throw new Error(`Doc not found by primary key ${key} in storage ${this.name}`)
       }
 
       this.documents.delete(original)
@@ -296,13 +298,15 @@ export class ThinStorage {
   }
 
   /**
-   *
-   * @param query
-   * @param options
-   * @return {unknown[]|*[]}
+   * Select documents from the set by a given selector pattern (query).
+   * @param {object|object[]|string|string[]|function|undefined} query
+   * @param {object} [options={}]
+   * @param {boolean} [options.loose=] use to check loosely (==) instead of strict (===)
+   * @param {number} [options.limit=] limits the amount of documents to add to the result
+   * @returns {object[]}
    */
   find (query, options = {}) {
-    const { limit, looseMatching } = options
+    const { limit, loose } = options
     const docs = this.documents
 
     if (typeof query === 'undefined' || query === null) {
@@ -330,7 +334,7 @@ export class ThinStorage {
 
       const byMatcher = doc => entries.every(([key, value]) =>
         toArray(value)
-          .some(val => looseMatching
+          .some(val => loose
             ? doc[key] == val // eslint-disable-line
             : doc[key] === val))
       return filterDocs({ docs, limit, query: byMatcher })
@@ -341,7 +345,7 @@ export class ThinStorage {
       const add = doc => limit > 0 && subs.size >= limit ? undefined : subs.add(doc)
       for (const q of query) {
         // beware this is a recursion, we hope you know what you are doing
-        this.find(q, { looseMatching }).forEach(add)
+        this.find(q, { loose }).forEach(add)
       }
       return [...subs]
     }
